@@ -113,10 +113,10 @@ func (tok *ruleToken) FindMatch(subject string, offset int) (*tokenMatch, error)
 func (r *ruleMatcher) Match(filename string) ([]tokenMatch, error) {
 	offset := 0
 	ret := []tokenMatch{}
-	for _, rt := range r.tokens {
-		match, err := rt.FindMatch(filename, offset)
+	for i := range r.tokens {
+		match, err := r.tokens[i].FindMatch(filename, offset)
 		if err != nil {
-			return ret, fmt.Errorf("Failed to match token `%s`: %s", rt.descr, err.Error())
+			return ret, fmt.Errorf("Failed to match token `%s`: %s", r.tokens[i].descr, err.Error())
 		}
 		ret = append(ret, *match)
 		offset = match.matchPos[1]
