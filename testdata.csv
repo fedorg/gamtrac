@@ -1,0 +1,3 @@
+dept,responsible,template_path,template_file,doc,comment
+DEPARTMENT,RESP,OBI/<template>,fid_<date>_user_<username>,this is a documeeeent,this is a comment
+otherdept,resp2,BAL/<dir2>/<dir2_x>/<filename>,,other document,other comment
