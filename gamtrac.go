@@ -71,47 +71,33 @@ func processFile(inputs <-chan annotItem, output chan<- annotResult, errorsChan 
 		ret := annotResult{path: filename, pattern: strings.Join(fields, ","), hash: hash}
 		fmt.Println("Send for files: ", filename)
 		output <- ret
-		// for _, tok := range strings.Split(filename, "<") {
-		// 	tok_start := strings.Index(tok, ">")
-		// 	if tok_start == -1 {
-		// 		errorsChan <- errors.New(fmt.Sprintf("Invalid rule spec %s", filename))
-		// 	}
-		// }
-
-		// hash, err := computeHash(filename)
-		// if err != nil {
-		// 	errorsChan <- err
-		// }
-
-		// scanner := bufio.NewScanner(file)
-		// scanner.Split(bufio.ScanWords)
-		// for scanner.Scan() {
-		// 	output <- scanner.Text()
-		// }
-		// if scanner.Err() != nil {
-		// 	errorsChan <- scanner.Err()
-		// }
-
 	}
 }
 
 func main() {
 	// Serve()
 	crazyrule := "<disk>:\\<folder>\\<дргуая папка>\\totally_not<what_is_it>>.<ext>:file"
-	parsedRule, err := NewMatcher(crazyrule) //test_rules[0])
+	crazyfile := "C:\\Windows\\System32\\totally_not_virus<3>.data:file"
+	csv, err := ReadCSVTable("testdata.csv")
 	if err != nil {
-		fmt.Println(err)
-		return
+		panic(err)
 	}
-	fmt.Println(*parsedRule)
-
-	// TODO: convert windows slashes to normal slashes and match both
-	matches, err := parsedRule.Match("C:\\Windows\\System32\\totally_not_virus<3>.data:file")
+	rules, err := CSVToRules(csv, true)
 	if err != nil {
-		fmt.Println(err)
-		return
+		panic(err)
 	}
-	fmt.Println(matches)
+	crazyrule = strings.ReplaceAll(crazyrule, "\\", "/")
+	crule, err := NewMatcher(crazyrule)
+	if err != nil {
+		panic(err)
+	}
+	rules = append(rules, *crule)
+	crazyfile = strings.ReplaceAll(crazyfile, "\\", "/")
+	match, err := ParseFilename(crazyfile, rules, true)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(match.AsMap())
 
 	args := os.Args[1:]
 	var paths []string

@@ -162,10 +162,10 @@ func FindBestRuleIndex(parsed []ruleMatch) int {
 	return ret
 }
 
-func ParseFilename(filename string, rules []ruleMatcher) (*ruleMatch, error) {
+func ParseFilename(filename string, rules []ruleMatcher, onlyFull bool) (*ruleMatch, error) {
 	matches := MatchAllRules(filename, rules)
 	i := FindBestRuleIndex(matches)
-	if i == -1 {
+	if (i == -1) || (onlyFull && !matches[i].full) {
 		return nil, fmt.Errorf("No rules match the filename `%s`", filename)
 	}
 	return &matches[i], nil
@@ -181,7 +181,7 @@ func ReadCSVTable(filename string) ([]strMap, error) {
 		return nil, err
 	}
 	if len(records) < 2 {
-		return nil, fmt.Errorf("No records found in `%v`", filename)
+		return nil, fmt.Errorf("Invalid CSV header or no records found in `%v`", filename)
 	}
 	header := records[0]
 	ret := []strMap{}
@@ -196,7 +196,7 @@ func ReadCSVTable(filename string) ([]strMap, error) {
 	return ret, nil
 }
 
-func CSVToRules(csv []strMap) ([]ruleMatcher, error) {
+func CSVToRules(csv []strMap, convertSlashes bool) ([]ruleMatcher, error) {
 	ruleStrings := []string{}
 	for i, proto := range csv {
 		pathElems := []string{}
@@ -210,8 +210,10 @@ func CSVToRules(csv []strMap) ([]ruleMatcher, error) {
 		if fullpath == "" {
 			return nil, fmt.Errorf("Empty rule found at index %v", i)
 		}
-		// convert all backslashes to forward slashes
-		fullpath = strings.ReplaceAll(fullpath, "\\", "/")
+		if convertSlashes {
+			// convert all backslashes to forward slashes
+			fullpath = strings.ReplaceAll(fullpath, "\\", "/")
+		}
 		ruleStrings = append(ruleStrings, fullpath)
 	}
 	ret := []ruleMatcher{}
