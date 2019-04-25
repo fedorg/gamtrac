@@ -5,8 +5,12 @@ import (
 	"net/http"
 )
 
+type ServerState struct {
+	files map[string]annotResult
+}
+
 // Serve ... run the server and persistence layer
-func Serve() {
+func Serve(state *ServerState) {
 	http.HandleFunc("/api/index", indexHandler)
 	http.HandleFunc("/api/repo/", repoHandler)
 	log.Fatal(http.ListenAndServe("localhost:8000", nil))

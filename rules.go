@@ -32,12 +32,15 @@ type ruleMatch struct {
 	matches []tokenMatch
 	lastPos int
 	err     error
+	rule    *ruleMatcher
 }
 
 func (r *ruleMatch) AsMap() map[string]string {
 	ret := make(map[string]string)
 	for _, m := range r.matches {
-		ret[m.token.descr] = m.match
+		if !m.token.isConst {
+			ret[m.token.descr] = m.match
+		}
 	}
 	return ret
 }
@@ -140,6 +143,7 @@ func MatchAllRules(filename string, rules []ruleMatcher) []ruleMatch {
 			err:     err,
 			lastPos: lastpos,
 			matches: tokens,
+			rule:    &matcher,
 		}
 		matches = append(matches, matchResult)
 	}

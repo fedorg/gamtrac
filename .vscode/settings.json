@@ -1,0 +1,5 @@
+{
+    "go.useLanguageServer": false,
+    "go.formatTool": "gofmt",
+    "go.useCodeSnippetsOnFunctionSuggest": true
+}
