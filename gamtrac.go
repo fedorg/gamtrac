@@ -88,8 +88,8 @@ func main() {
 	// rslt := map[string]annotResult{}
 	owner, err := GetFileOwnerUID(`C:\Users\fed00\Desktop\2019.02.19 DI FAVEA\03-Data-Management-and-Integrity-3-RU.pdf`)
 	owner, err = GetFileOwnerUID("testdata.csv")
-	// owner, err = GetFileOwnerUID(`R:\Chemnext\proba.png`)
-	li, err := NewConnectionInfo("biocad.loc", "biocad", username, pass, false, false)
+	owner, err = GetFileOwnerUID(`R:\DAR\ОБИ\archive\Raw Data Guava S1.3.L32-24.004 (А-0005492)\Raw Data\2018-10-20_test.fcs`)
+	li, err := NewConnectionInfo("SERVER-DC3.biocad.loc", "biocad", username, pass, false, false)
 	if err != nil {
 		panic(err)
 	}
@@ -97,7 +97,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	users, err := LdapSearchUsers(lc, "biocad", "")
+	defer lc.Close()
+	users, err := LdapSearchUsers(lc, "dc=biocad,dc=loc", fmt.Sprintf("(objectSid=%s)", *owner))
 	if err != nil {
 		panic(err)
 	}

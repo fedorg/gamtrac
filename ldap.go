@@ -6,6 +6,7 @@ import (
 	"gopkg.in/ldap.v2"
 	"net"
 	"reflect"
+	"strings"
 )
 
 const _PAGING_SIZE = 500
@@ -95,15 +96,16 @@ func NewConnectionInfo(ldapServer string, domain string, user string, pass strin
 }
 
 type LdapUserInfo struct {
-	objectSid         string
-	sAMAccountName    string
-	sAMAccountType    string
-	userPrincipalName string
-	displayName       string
-	givenName         string
-	description       string
-	adminCount        string
-	homeDirectory     string
+	ObjectSid      string
+	SAMAccountName string
+	CN             string
+	// sAMAccountType    string
+	// userPrincipalName string
+	// displayName       string
+	// givenName         string
+	// description       string
+	// adminCount        string
+	// homeDirectory     string
 }
 
 func GetStructFields(t interface{}) []string {
@@ -118,8 +120,11 @@ func GetStructFields(t interface{}) []string {
 }
 
 func SetStructStringField(t interface{}, field string, value string) error {
-	// Elem returns the value that the pointer u points to.
-	v := reflect.ValueOf(t).Elem()
+	v := reflect.ValueOf(t)
+	if v.Kind() != reflect.Ptr || v.IsNil() {
+		return fmt.Errorf("decode requires non-nil pointer")
+	}
+	v = v.Elem()
 	f := v.FieldByName(field)
 	if !f.IsValid() || !f.CanSet() {
 		return fmt.Errorf("Could not set field %v", field)
@@ -158,17 +163,29 @@ func LdapSearchUsers(conn *ldap.Conn, searchDN string, filter string) ([]LdapUse
 	}
 
 	ret := []LdapUserInfo{}
+	// case-insensitive get
+	getAttributes := func(e *ldap.Entry, attribute string) []string {
+		for _, attr := range e.Attributes {
+			if strings.ToLower(attr.Name) == strings.ToLower(attribute) {
+				if len(attr.Values) == 0 {
+					return []string{""}
+				}
+				return attr.Values
+			}
+		}
+		return []string{""}
+	}
 	for _, entry := range sr.Entries {
 		// mem := strings.Join(entry.GetAttributeValues("memberOf"), " ")
-		info := LdapUserInfo{}
-		for _, fld := range GetStructFields(&info) {
-			val := entry.GetAttributeValue(fld)
-			err := SetStructStringField(&info, fld, val)
+		info := new(LdapUserInfo)
+		for _, fld := range GetStructFields(info) {
+			val := getAttributes(entry, fld)[0]
+			err := SetStructStringField(info, fld, val)
 			if err != nil {
 				return nil, err
 			}
 		}
-		ret = append(ret, info)
+		ret = append(ret, *info)
 	}
 	return ret, nil
 }
