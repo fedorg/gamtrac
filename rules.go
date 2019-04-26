@@ -39,7 +39,7 @@ func (r *ruleMatch) AsMap() map[string]string {
 	ret := make(map[string]string)
 	for _, m := range r.matches {
 		if !m.token.isConst {
-			ret[m.token.descr] = m.match
+			ret[strings.Trim(m.token.descr, "<>")] = m.match
 		}
 	}
 	return ret

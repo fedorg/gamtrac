@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
 )
@@ -118,8 +119,8 @@ func processFile(inputs <-chan annotItem, output chan<- *AnnotResult, wg *sync.W
 		var rule *string
 		var ruleVars map[string]string
 		// TODO: run these as goroutines in parallel
-		errors := []FileError{}
-		parsed, err := ParseFilename(filename, input.rules, true)
+		errors := make([]FileError, 0)
+		parsed, err := ParseFilename(strings.ReplaceAll(filename, "\\", "/"), input.rules, true)
 		if err != nil {
 			errors = append(errors, NewFileError(err))
 		} else {
