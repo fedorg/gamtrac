@@ -34,7 +34,11 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 func repoHandler(w http.ResponseWriter, r *http.Request) {
 	//...
 	srvState.Lock()
-	ret, err := json.MarshalIndent(srvState, "", " ")
+	jsvals := map[string]AnnotResult{}
+	for _, val := range srvState.files {
+		jsvals[val.Path] = *val
+	}
+	ret, err := json.MarshalIndent(jsvals, "", " ")
 	srvState.Unlock()
 
 	if err != nil {

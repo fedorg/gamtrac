@@ -144,7 +144,7 @@ func collectResults(annots <-chan *AnnotResult, out chan<- map[string]*AnnotResu
 	// TODO: make this less ugly
 	ret := map[string]*AnnotResult{}
 	wg := &sync.WaitGroup{}
-	wg.Add(2)
+	wg.Add(1)
 	m := &sync.Mutex{}
 	set := func(filename string, rslt *AnnotResult) {
 		m.Lock()
@@ -176,33 +176,33 @@ func main() {
 	}
 	go Serve(&srvState)
 
-	username := os.Getenv("GAMTRAC_USERNAME")
-	pass := os.Getenv("GAMTRAC_PASSWORD")
-	// rslt := map[string]AnnotResult{}
-	owner, err := GetFileOwnerUID(`C:\Users\fed00\Desktop\2019.02.19 DI FAVEA\03-Data-Management-and-Integrity-3-RU.pdf`)
-	owner, err = GetFileOwnerUID("testdata.csv")
-	owner, err = GetFileOwnerUID(`R:\DAR\ОБИ\archive\Raw Data Guava S1.3.L32-24.004 (А-0005492)\Raw Data\2018-10-20_test.fcs`)
-	li, err := NewConnectionInfo("SERVER-DC3.biocad.loc", "biocad", username, pass, false, false)
-	if err != nil {
-		panic(err)
-	}
-	lc, err := LdapConnect(li)
-	if err != nil {
-		panic(err)
-	}
-	defer lc.Close()
-	users, err := LdapSearchUsers(lc, "dc=biocad,dc=loc", fmt.Sprintf("(objectSid=%s)", *owner))
-	if err != nil {
-		panic(err)
-	}
-	for _, user := range users {
-		fmt.Println(user)
-	}
+	// username := os.Getenv("GAMTRAC_USERNAME")
+	// pass := os.Getenv("GAMTRAC_PASSWORD")
+	// // rslt := map[string]AnnotResult{}
+	// owner, err := GetFileOwnerUID(`C:\Users\fed00\Desktop\2019.02.19 DI FAVEA\03-Data-Management-and-Integrity-3-RU.pdf`)
+	// owner, err = GetFileOwnerUID("testdata.csv")
+	// owner, err = GetFileOwnerUID(`R:\DAR\ОБИ\archive\Raw Data Guava S1.3.L32-24.004 (А-0005492)\Raw Data\2018-10-20_test.fcs`)
+	// li, err := NewConnectionInfo("SERVER-DC3.biocad.loc", "biocad", username, pass, false, false)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// lc, err := LdapConnect(li)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// defer lc.Close()
+	// users, err := LdapSearchUsers(lc, "dc=biocad,dc=loc", fmt.Sprintf("(objectSid=%s)", *owner))
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// for _, user := range users {
+	// 	fmt.Println(user)
+	// }
 
-	if err != nil {
-		panic(err)
-	}
-	fmt.Print(*owner)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// fmt.Print(*owner)
 
 	var epoch int64 = 0
 
@@ -243,9 +243,10 @@ func main() {
 			filepath.Walk(p, func(path string, f os.FileInfo, err error) error {
 				if err != nil {
 					fmt.Printf("Error: %s\n", err.Error())
+					// panic(err)
 					return err
 				}
-				// fmt.Printf("Queued: %s\n", path)
+				fmt.Printf("Queued: %s\n", path)
 				func() { inputs <- annotItem{path: path, fileInfo: f, queuedAt: time.Now(), rules: rules} }()
 				return nil
 			})
@@ -253,10 +254,12 @@ func main() {
 
 		close(inputs)
 		wg.Wait()
+		close(output)
 		rslt := <-done
 		srvState.Lock()
 		srvState.files = rslt
 		srvState.Unlock()
+		time.Sleep(time.Second * 1)
 	}
 	// TODO: wait for all the result combos to finish
 
