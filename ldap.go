@@ -11,6 +11,20 @@ import (
 
 const _PAGING_SIZE = 500
 
+type LdapUserInfo struct {
+	// ObjectSid      string
+	SAMAccountName string
+	CN             string
+	MemberOf       string
+	// sAMAccountType    string
+	// userPrincipalName string
+	// displayName       string
+	// givenName         string
+	// description       string
+	// adminCount        string
+	// homeDirectory     string
+}
+
 // LdapInfo contains connection info
 type LdapInfo struct {
 	LdapServer  string
@@ -95,19 +109,6 @@ func NewConnectionInfo(ldapServer string, domain string, user string, pass strin
 	return li, nil
 }
 
-type LdapUserInfo struct {
-	ObjectSid      string
-	SAMAccountName string
-	CN             string
-	// sAMAccountType    string
-	// userPrincipalName string
-	// displayName       string
-	// givenName         string
-	// description       string
-	// adminCount        string
-	// homeDirectory     string
-}
-
 func GetStructFields(t interface{}) []string {
 	s := reflect.ValueOf(t).Elem()
 	typeOfT := s.Type()
@@ -179,7 +180,7 @@ func LdapSearchUsers(conn *ldap.Conn, searchDN string, filter string) ([]LdapUse
 		// mem := strings.Join(entry.GetAttributeValues("memberOf"), " ")
 		info := new(LdapUserInfo)
 		for _, fld := range GetStructFields(info) {
-			val := getAttributes(entry, fld)[0]
+			val := strings.Join(getAttributes(entry, fld), "\n")
 			err := SetStructStringField(info, fld, val)
 			if err != nil {
 				return nil, err
@@ -189,3 +190,19 @@ func LdapSearchUsers(conn *ldap.Conn, searchDN string, filter string) ([]LdapUse
 	}
 	return ret, nil
 }
+
+// func (s SID) String() string {
+// 	if len(s) < 8 || s[0] != sidRevision || len(s) != (int(s[1])*4)+8 {
+// 		return ""
+// 	}
+
+// 	ret := []byte("S-1-")
+// 	ret = strconv.AppendUint(ret, binary.BigEndian.Uint64(s[:8])&0xFFFFFFFFFFFF, 10)
+
+// 	for i := 0; i < int(s[1]); i++ {
+// 		ret = append(ret, "-"...)
+// 		ret = strconv.AppendUint(ret, uint64(binary.LittleEndian.Uint32(s[8+i*4:])), 10)
+// 	}
+
+// 	return string(ret)
+// }
