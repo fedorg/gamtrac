@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -171,6 +172,47 @@ func collectResults(annots <-chan *AnnotResult, out chan<- map[string]*AnnotResu
 }
 
 func main() {
+	gg := NewGamtracGql("https://fedor-hasura-test.herokuapp.com/v1alpha1/graphql", 5000, false)
+	rand.Seed(time.Now().UnixNano())
+	alphabet := []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890")
+	randSeq := func(n int) string {
+		b := make([]rune, n)
+		for i := range b {
+			b[i] = alphabet[rand.Intn(len(alphabet))]
+		}
+		return string(b)
+	}
+
+	numNewFiles := rand.Intn(100)
+	_nf := make([]Files, numNewFiles)
+	for i := 0; i < numNewFiles; i++ {
+		_nf[i] = Files{
+			Filename: randSeq(25),
+			Revision: rand.Intn(66),
+			Data:     "{}",
+		}
+	}
+	newFiles, err := gg.RunInsertFiles(_nf)
+	if err != nil {
+		panic(err)
+	}
+	for _, nf := range newFiles {
+		fmt.Println(nf.FileID, nf.Revision)
+	}
+	fmt.Println("Deleting files...")
+	if _, err := gg.RunDeleteFiles(10); err != nil {
+		panic(err)
+	}
+
+	fmt.Println("Fetching files ...")
+	files, err := gg.RunFetchFiles(10)
+	if err != nil {
+		panic(err)
+	}
+	for i := range files {
+		fmt.Println(files[i].FileID, files[i].Filename)
+	}
+	return
 
 	srvState := ServerState{
 		files: make(map[string]*AnnotResult),
