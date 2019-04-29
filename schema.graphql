@@ -1,0 +1,88 @@
+type files {
+  data(
+    """JSON select path"""
+    path: String
+  ): json!
+  file_id: Int!
+  filename: String!
+  revision: Int!
+}
+
+
+type Query {
+    files(
+    limit: Int
+    offset: Int
+    where: files_bool_exp
+  ): [files!]!
+}
+
+
+
+type Mutation {
+  delete_files(where: files_bool_exp!
+  ): files_mutation_response
+
+  insert_files(
+    objects: [files_insert_input!]!
+  ): files_mutation_response
+
+}
+
+type files_mutation_response {
+  affected_rows: Int!
+  returning: [files!]!
+}
+
+
+
+
+scalar json
+
+input files_insert_input {
+  data: json
+  file_id: Int
+  filename: String
+  revision: Int
+}
+
+input text_comparison_exp {
+  _eq: String
+  _gt: String
+  _gte: String
+  _ilike: String
+  _in: [String]
+  _is_null: Boolean
+  _like: String
+  _lt: String
+  _lte: String
+  _neq: String
+  _nilike: String
+  _nin: [String]
+  _nlike: String
+  _nsimilar: String
+  _similar: String
+}
+
+input integer_comparison_exp {
+  _eq: Int
+  _gt: Int
+  _gte: Int
+  _in: [Int]
+  _is_null: Boolean
+  _lt: Int
+  _lte: Int
+  _neq: Int
+  _nin: [Int]
+}
+
+
+input files_bool_exp {
+  _and: [files_bool_exp]
+  _not: files_bool_exp
+  _or: [files_bool_exp]
+  file_id: integer_comparison_exp
+  filename: text_comparison_exp
+  revision: integer_comparison_exp
+}
+
