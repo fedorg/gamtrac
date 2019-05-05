@@ -1,4 +1,4 @@
-package main
+package api
 
 import (
 	"encoding/json"
@@ -13,6 +13,20 @@ import (
 type ServerState struct {
 	sync.Mutex
 	files map[string]*AnnotResult
+}
+
+func NewServerState() *ServerState {
+	srvState := ServerState{
+		files: make(map[string]*AnnotResult),
+	}
+	return &srvState
+}
+
+func (ss *ServerState) Update(newFiles map[string]*AnnotResult) *ServerState {
+	ss.Lock()
+	ss.files = newFiles
+	ss.Unlock()
+	return ss
 }
 
 var srvState *ServerState

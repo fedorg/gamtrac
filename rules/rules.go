@@ -1,4 +1,4 @@
-package main
+package rules
 
 import (
 	"bufio"
@@ -16,8 +16,8 @@ type ruleToken struct {
 	terminator string
 }
 
-type ruleMatcher struct {
-	rule   string
+type RuleMatcher struct {
+	Rule   string
 	tokens []ruleToken
 }
 
@@ -27,15 +27,15 @@ type tokenMatch struct {
 	matchPos [2]int
 }
 
-type ruleMatch struct {
+type RuleMatch struct {
 	full    bool
 	matches []tokenMatch
 	lastPos int
 	err     error
-	rule    *ruleMatcher
+	Rule    *RuleMatcher
 }
 
-func (r *ruleMatch) AsMap() map[string]string {
+func (r *RuleMatch) AsMap() map[string]string {
 	ret := make(map[string]string)
 	for _, m := range r.matches {
 		if !m.token.isConst {
@@ -45,7 +45,7 @@ func (r *ruleMatch) AsMap() map[string]string {
 	return ret
 }
 
-func NewMatcher(rule string) (*ruleMatcher, error) {
+func NewMatcher(rule string) (*RuleMatcher, error) {
 	re := regexp.MustCompile("<[^>]+>")
 	v := re.FindStringIndex(rule)
 	offset := 0
@@ -78,7 +78,7 @@ func NewMatcher(rule string) (*ruleMatcher, error) {
 		}
 	}
 	// fmt.Println("Tokens:", tokens)
-	return &ruleMatcher{rule: rule, tokens: tokens}, nil
+	return &RuleMatcher{Rule: rule, tokens: tokens}, nil
 }
 
 func min(a, b int) int {
@@ -113,7 +113,7 @@ func (tok *ruleToken) FindMatch(subject string, offset int) (*tokenMatch, error)
 	return &tokenMatch{token: tok, matchPos: [2]int{start, stop}, match: subject[start:stop]}, nil
 }
 
-func (r *ruleMatcher) Match(filename string) ([]tokenMatch, error) {
+func (r *RuleMatcher) Match(filename string) ([]tokenMatch, error) {
 	offset := 0
 	ret := []tokenMatch{}
 	for i := range r.tokens {
@@ -127,23 +127,23 @@ func (r *ruleMatcher) Match(filename string) ([]tokenMatch, error) {
 	return ret, nil
 }
 
-func MatchAllRules(filename string, rules []ruleMatcher) []ruleMatch {
+func MatchAllRules(filename string, rules []RuleMatcher) []RuleMatch {
 	getLastPos := func(tokens []tokenMatch) int {
 		if len(tokens) == 0 {
 			return 0
 		}
 		return tokens[len(tokens)-1].matchPos[1]
 	}
-	matches := []ruleMatch{}
+	matches := []RuleMatch{}
 	for _, matcher := range rules {
 		tokens, err := matcher.Match(filename)
 		lastpos := getLastPos(tokens)
-		matchResult := ruleMatch{
+		matchResult := RuleMatch{
 			full:    len(filename) == lastpos,
 			err:     err,
 			lastPos: lastpos,
 			matches: tokens,
-			rule:    &matcher,
+			Rule:    &matcher,
 		}
 		matches = append(matches, matchResult)
 	}
@@ -151,7 +151,7 @@ func MatchAllRules(filename string, rules []ruleMatcher) []ruleMatch {
 }
 
 // FindBestRuleIndex returns the index of the beset match in the list or -1 if no rules match at all
-func FindBestRuleIndex(parsed []ruleMatch) int {
+func FindBestRuleIndex(parsed []RuleMatch) int {
 	ret := -1
 	lastPos := 0
 	for i, rm := range parsed {
@@ -166,7 +166,7 @@ func FindBestRuleIndex(parsed []ruleMatch) int {
 	return ret
 }
 
-func ParseFilename(filename string, rules []ruleMatcher, onlyFull bool) (*ruleMatch, error) {
+func ParseFilename(filename string, rules []RuleMatcher, onlyFull bool) (*RuleMatch, error) {
 	matches := MatchAllRules(filename, rules)
 	i := FindBestRuleIndex(matches)
 	if (i == -1) || (onlyFull && !matches[i].full) {
@@ -200,7 +200,7 @@ func ReadCSVTable(filename string) ([]strMap, error) {
 	return ret, nil
 }
 
-func CSVToRules(csv []strMap, convertSlashes bool) ([]ruleMatcher, error) {
+func CSVToRules(csv []strMap, convertSlashes bool) ([]RuleMatcher, error) {
 	ruleStrings := []string{}
 	for i, proto := range csv {
 		pathElems := []string{}
@@ -220,7 +220,7 @@ func CSVToRules(csv []strMap, convertSlashes bool) ([]ruleMatcher, error) {
 		}
 		ruleStrings = append(ruleStrings, fullpath)
 	}
-	ret := []ruleMatcher{}
+	ret := []RuleMatcher{}
 	for _, rs := range ruleStrings {
 		rule, err := NewMatcher(rs)
 		if err != nil {

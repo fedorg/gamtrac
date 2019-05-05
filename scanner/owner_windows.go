@@ -1,6 +1,6 @@
 // +build windows
 
-package main
+package scanner
 
 import "golang.org/x/sys/windows"
 import acl "github.com/hectane/go-acl/api"

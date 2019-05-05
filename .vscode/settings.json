@@ -1,5 +1,25 @@
 {
-    "go.useLanguageServer": false,
-    "go.formatTool": "gofmt",
+    "go.useLanguageServer": true,
+    // "go.formatTool": "gofmt",
+    // "go.vetOnSave": "off",
+    // "go.lintFlags": ["--disable-all", "--enable=errcheck"],
+    // "go.buildOnSave": "off",
+    "[go]": {
+        "editor.formatOnSave": false
+    },
+    "go.languageServerExperimentalFeatures": {
+        "format": true,
+        "autoComplete": true,
+        "rename": false,
+        "goToDefinition": true,
+        "hover": true,
+        "signatureHelp": true,
+        "goToTypeDefinition": true,
+        "goToImplementation": true,
+        "documentSymbols": true,
+        "workspaceSymbols": true,
+        "findReferences": true,
+        "diagnostics": false
+    },
     "go.useCodeSnippetsOnFunctionSuggest": true
 }

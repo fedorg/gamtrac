@@ -3,8 +3,10 @@ package main
 import (
 	"bufio"
 	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
+	"gamtrac/api"
+	"gamtrac/rules"
+	"gamtrac/scanner"
 	"io"
 	"math/rand"
 	"os"
@@ -15,72 +17,17 @@ import (
 	"time"
 )
 
-type annotItem struct {
+type HashDigest = api.HashDigest
+type FileError = api.FileError
+type AnnotResult = api.AnnotResult
+type Files = api.Files
+type ServerState = api.ServerState
+
+type AnnotItem struct {
 	path     string
 	fileInfo os.FileInfo
-	rules    []ruleMatcher
+	rules    []rules.RuleMatcher
 	queuedAt time.Time
-}
-
-type HashDigest struct {
-	Algorithm string
-	Value     []byte
-}
-
-func (h HashDigest) String() string {
-	return fmt.Sprintf("%s:%s", h.Algorithm, hex.EncodeToString(h.Value))
-	// return fmt.Sprintf(base64.StdEncoding.EncodeToString(h.Value))
-}
-
-type FileError struct {
-	// Filename  string
-	Error     error
-	CreatedAt time.Time
-}
-
-type AnnotResult struct {
-	Path        string             // required
-	Size        int64              // required
-	Mode        os.FileMode        // required
-	ModTime     time.Time          // required
-	QueuedAt    time.Time          // required
-	ProcessedAt time.Time          // required
-	IsDir       bool               // required
-	OwnerUID    *string            // optional
-	Hash        *HashDigest        // optional
-	Pattern     *string            // optional
-	Parsed      *map[string]string // optional
-	Errors      []FileError        // required
-}
-
-func NewAnnotResult(
-	Path string,
-	Size int64,
-	Mode os.FileMode,
-	ModTime time.Time,
-	QueuedAt time.Time,
-	ProcessedAt time.Time,
-	IsDir bool,
-	OwnerUID *string,
-	Hash *HashDigest,
-	Pattern *string,
-	Parsed *map[string]string,
-	Errors []FileError,
-) AnnotResult {
-	return AnnotResult{
-		Path:        Path,
-		Size:        Size,
-		Mode:        Mode,
-		ModTime:     ModTime,
-		QueuedAt:    QueuedAt,
-		ProcessedAt: ProcessedAt,
-		IsDir:       IsDir,
-		OwnerUID:    OwnerUID,
-		Hash:        Hash,
-		Pattern:     Pattern,
-		Parsed:      Parsed,
-		Errors:      Errors,
-	}
 }
 
 var test_rules = []string{
@@ -111,7 +58,7 @@ func NewFileError(err error) FileError {
 	}
 }
 
-func processFile(inputs <-chan annotItem, output chan<- *AnnotResult, wg *sync.WaitGroup) {
+func processFile(inputs <-chan AnnotItem, output chan<- *AnnotResult, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for input := range inputs {
 		filename := input.path
@@ -121,14 +68,14 @@ func processFile(inputs <-chan annotItem, output chan<- *AnnotResult, wg *sync.W
 		var ruleVars map[string]string
 		// TODO: run these as goroutines in parallel
 		errors := make([]FileError, 0)
-		parsed, err := ParseFilename(strings.ReplaceAll(filename, "\\", "/"), input.rules, true)
+		parsed, err := rules.ParseFilename(strings.ReplaceAll(filename, "\\", "/"), input.rules, true)
 		if err != nil {
 			errors = append(errors, NewFileError(err))
 		} else {
-			rule = &parsed.rule.rule
+			rule = &parsed.Rule.Rule
 			ruleVars = parsed.AsMap()
 		}
-		owner, err := GetFileOwnerUID(filename)
+		owner, err := scanner.GetFileOwnerUID(filename)
 		if err != nil {
 			errors = append(errors, NewFileError(err))
 		}
@@ -136,7 +83,7 @@ func processFile(inputs <-chan annotItem, output chan<- *AnnotResult, wg *sync.W
 		if err != nil {
 			errors = append(errors, NewFileError(err))
 		}
-		ret := NewAnnotResult(filename, info.Size(), info.Mode(), info.ModTime(), input.queuedAt, time.Now(), info.IsDir(), owner, hash, rule, &ruleVars, errors)
+		ret := api.NewAnnotResult(filename, info.Size(), info.Mode(), info.ModTime(), input.queuedAt, time.Now(), info.IsDir(), owner, hash, rule, &ruleVars, errors)
 		fmt.Println("Finished processing file: ", filename)
 		output <- &ret
 	}
@@ -172,7 +119,7 @@ func collectResults(annots <-chan *AnnotResult, out chan<- map[string]*AnnotResu
 }
 
 func main() {
-	gg := NewGamtracGql("https://fedor-hasura-test.herokuapp.com/v1alpha1/graphql", 5000, false)
+	gg := api.NewGamtracGql("https://fedor-hasura-test.herokuapp.com/v1alpha1/graphql", 5000, false)
 	rand.Seed(time.Now().UnixNano())
 	alphabet := []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890")
 	randSeq := func(n int) string {
@@ -214,10 +161,8 @@ func main() {
 	}
 	return
 
-	srvState := ServerState{
-		files: make(map[string]*AnnotResult),
-	}
-	go Serve(&srvState)
+	srvState := api.NewServerState()
+	go api.Serve(srvState)
 
 	// username := os.Getenv("GAMTRAC_USERNAME")
 	// pass := os.Getenv("GAMTRAC_PASSWORD")
@@ -252,11 +197,11 @@ func main() {
 	for {
 		epoch++
 		fmt.Printf("Epoch %v\n", epoch)
-		csv, err := ReadCSVTable("testdata.csv")
+		csv, err := rules.ReadCSVTable("testdata.csv")
 		if err != nil {
 			panic(err)
 		}
-		rules, err := CSVToRules(csv, true)
+		rules, err := rules.CSVToRules(csv, true)
 		if err != nil {
 			panic(err)
 		}
@@ -268,7 +213,7 @@ func main() {
 		} else {
 			paths = append(paths, args...)
 		}
-		inputs := make(chan annotItem)
+		inputs := make(chan AnnotItem)
 		output := make(chan *AnnotResult)
 		// errorsChan := make(chan FileError)
 
@@ -290,7 +235,7 @@ func main() {
 					return err
 				}
 				fmt.Printf("Queued: %s\n", path)
-				func() { inputs <- annotItem{path: path, fileInfo: f, queuedAt: time.Now(), rules: rules} }()
+				func() { inputs <- AnnotItem{path: path, fileInfo: f, queuedAt: time.Now(), rules: rules} }()
 				return nil
 			})
 		}
@@ -299,9 +244,7 @@ func main() {
 		wg.Wait()
 		close(output)
 		rslt := <-done
-		srvState.Lock()
-		srvState.files = rslt
-		srvState.Unlock()
+		srvState.Update(rslt)
 		time.Sleep(time.Second * 1)
 	}
 	// TODO: wait for all the result combos to finish

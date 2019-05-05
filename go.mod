@@ -1,4 +1,4 @@
-module github.com/fedorg/gamtrac
+module gamtrac
 
 go 1.12
 

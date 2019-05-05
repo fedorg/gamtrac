@@ -1,10 +1,11 @@
-package main
+package api
 
 import (
 	"context"
-	"github.com/machinebox/graphql"
 	"log"
 	"time"
+
+	"github.com/machinebox/graphql"
 )
 
 type GamtracGql struct {
