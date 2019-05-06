@@ -63,7 +63,7 @@ func MountShare(share string, domain string, user string, pass string) (*string,
 		return nil, err
 	}
 	tmpdir := *letter + `:`
-	fmt.Printf("%v", []string{"net", "use", tmpdir, share, fmt.Sprintf(`/user:%s\%s`, domain, user), pass, "/P:YES"})
+	// fmt.Printf("%v", []string{"net", "use", tmpdir, share, fmt.Sprintf(`/user:%s\%s`, domain, user), pass, "/P:YES"})
 	output, err := exec.Command("net", "use", tmpdir, share, fmt.Sprintf(`/user:%s\%s`, domain, user), pass, "/P:YES").CombinedOutput()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v", string(output))
