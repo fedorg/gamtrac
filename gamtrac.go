@@ -188,11 +188,14 @@ func main() {
 	defer scanner.UnmountShare(*tmpdir)
 	paths = []string{*tmpdir} // override
 
-	var epoch int64 = 0 // TODO create revision records on the server
 	gg := api.NewGamtracGql("https://fedor-hasura-test.herokuapp.com/v1alpha1/graphql", 5000, false)
 
 	for {
-		epoch++
+		rev, err := gg.RunCreateRevision()
+		if err != nil {
+			panic(err)
+		}
+		epoch := *rev
 		fmt.Printf("Epoch %v\n", epoch)
 		csv, err := rules.ReadCSVTable("testdata.csv")
 		if err != nil {

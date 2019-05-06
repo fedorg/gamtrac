@@ -8,6 +8,13 @@ type files {
   revision: Int!
 }
 
+scalar Timestamp
+
+type revisions {
+  revision_id: Int!
+  timestmp: Timestamp!
+}
+
 
 type Query {
     files(

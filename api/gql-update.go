@@ -117,3 +117,28 @@ func (gg *GamtracGql) RunDeleteFiles(not_rev int) ([]Files, error) {
 	}
 	return respData.DeleteFiles.Files, nil
 }
+
+func (gg *GamtracGql) RunCreateRevision() (*int, error) {
+	var respData struct {
+		CreateRevision struct {
+			Revisions []Revisions `json:"returning"`
+		} `json:"insert_revisions"`
+	}
+
+	query := `
+	mutation {
+		insert_revisions(objects: [{}]) {
+		  returning {
+			revision_id
+		  }
+		}
+	  }
+	`
+	vars := map[string]interface{}{}
+	if err := gg.Run(query, &respData, vars); err != nil {
+		return nil, err
+	}
+	var ret int
+	ret = respData.CreateRevision.Revisions[0].RevisionID
+	return &ret, nil
+}

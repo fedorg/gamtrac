@@ -1,0 +1,12 @@
+schema:
+  - api/schema.graphql
+
+
+model:
+  filename: api/models_gen.go
+  package: api
+
+
+# models:
+#   files:
+#     model: gamtrac/api/

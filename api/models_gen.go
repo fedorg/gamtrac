@@ -4,7 +4,7 @@ package api
 
 type Files struct {
 	Data     string `json:"data"`
-	FileID   int    `json:"file_id,omitempty"`
+	FileID   int    `json:"file_id"`
 	Filename string `json:"filename"`
 	Revision int    `json:"revision"`
 }
@@ -40,6 +40,11 @@ type IntegerComparisonExp struct {
 	_lte    *int   `json:"_lte"`
 	_neq    *int   `json:"_neq"`
 	_nin    []*int `json:"_nin"`
+}
+
+type Revisions struct {
+	RevisionID int    `json:"revision_id"`
+	Timestmp   string `json:"timestmp"`
 }
 
 type TextComparisonExp struct {
