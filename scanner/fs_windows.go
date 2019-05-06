@@ -45,7 +45,8 @@ func UnmountShare(local string) ([]byte, error) {
 }
 
 func MountShare(share string, domain string, user string, pass string) (*string, error) {
-	output, err := exec.Command("net", "use", share, fmt.Sprintf(`/user:%s\%s`, domain, user), pass, "/P:YES").CombinedOutput()
+	output, err := exec.Command("net", "use", share, "/delete", "/y").CombinedOutput()
+	output, err = exec.Command("net", "use", share, fmt.Sprintf(`/user:%s\%s`, domain, user), pass, "/y").CombinedOutput()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v", string(output))
 		return nil, err
