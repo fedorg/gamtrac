@@ -145,8 +145,8 @@ func main() {
 	srvState := api.NewServerState()
 	go api.Serve(srvState)
 
-	// username := os.Getenv("GAMTRAC_USERNAME")
-	// pass := os.Getenv("GAMTRAC_PASSWORD")
+	username := os.Getenv("GAMTRAC_USERNAME")
+	pass := os.Getenv("GAMTRAC_PASSWORD")
 	// // rslt := map[string]AnnotResult{}
 	// owner, err := GetFileOwnerUID(`C:\Users\fed00\Desktop\2019.02.19 DI FAVEA\03-Data-Management-and-Integrity-3-RU.pdf`)
 	// owner, err = GetFileOwnerUID("testdata.csv")
@@ -173,6 +173,21 @@ func main() {
 	// }
 	// fmt.Print(*owner)
 
+	args := os.Args[1:]
+	var paths []string
+	if len(args) == 0 {
+		paths = append(paths, ".")
+	} else {
+		paths = append(paths, args...)
+	}
+
+	tmpdir, err := scanner.MountShare(`\\srv-rnd-spb\rnddata`, "biocad", username, pass)
+	if err != nil {
+		panic(err)
+	}
+	defer scanner.UnmountShare(*tmpdir)
+	paths = []string{*tmpdir} // override
+
 	var epoch int64 = 0 // TODO create revision records on the server
 	gg := api.NewGamtracGql("https://fedor-hasura-test.herokuapp.com/v1alpha1/graphql", 5000, false)
 
@@ -188,13 +203,6 @@ func main() {
 			panic(err)
 		}
 
-		args := os.Args[1:]
-		var paths []string
-		if len(args) == 0 {
-			paths = append(paths, ".")
-		} else {
-			paths = append(paths, args...)
-		}
 		inputs := make(chan AnnotItem)
 		output := make(chan *AnnotResult)
 		// errorsChan := make(chan FileError)
@@ -235,6 +243,7 @@ func main() {
 		}
 		srvState.Update(rslt)
 		time.Sleep(time.Second * 1)
+		return
 	}
 	// TODO: wait for all the result combos to finish
 
