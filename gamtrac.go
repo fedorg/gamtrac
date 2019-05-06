@@ -138,6 +138,11 @@ func PushFileUpdates(gg *api.GamtracGql, revision int, rslts map[string]*AnnotRe
 	if err != nil {
 		return nil, err
 	}
+	_, err = gg.RunDeleteFiles(revision) // might not delete stuff, but we'll just print this error
+	if err != nil {
+		fmt.Fprint(os.Stderr, err)
+	}
+	// TODO: this function has shit error api
 	return insertedFiles, nil
 }
 
@@ -192,7 +197,6 @@ func main() {
 			paths[i] = *tmpdir // override p
 		}
 	}
-	return
 	gg := api.NewGamtracGql("https://fedor-hasura-test.herokuapp.com/v1alpha1/graphql", 5000, false)
 
 	for {

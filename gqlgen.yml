@@ -7,6 +7,6 @@ model:
   package: api
 
 
-# models:
-#   files:
-#     model: gamtrac/api/
+models:
+  files:
+    model: gamtrac/api.Files

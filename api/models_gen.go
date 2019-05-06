@@ -2,12 +2,9 @@
 
 package api
 
-type Files struct {
-	Data     string `json:"data"`
-	FileID   int    `json:"file_id"`
-	Filename string `json:"filename"`
-	Revision int    `json:"revision"`
-}
+import (
+	"time"
+)
 
 type FilesBoolExp struct {
 	_and     []*FilesBoolExp       `json:"_and"`
@@ -43,8 +40,8 @@ type IntegerComparisonExp struct {
 }
 
 type Revisions struct {
-	RevisionID int    `json:"revision_id"`
-	Timestmp   string `json:"timestmp"`
+	RevisionID *int       `json:"revision_id"`
+	Timestamp  *time.Time `json:"timestamp"`
 }
 
 type TextComparisonExp struct {

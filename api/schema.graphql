@@ -8,11 +8,11 @@ type files {
   revision: Int!
 }
 
-scalar Timestamp
+scalar Time
 
 type revisions {
-  revision_id: Int!
-  timestmp: Timestamp!
+  revision_id: Int
+  timestamp: Time
 }
 
 

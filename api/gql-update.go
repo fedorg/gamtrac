@@ -92,7 +92,7 @@ func (gg *GamtracGql) RunInsertFiles(files []Files) ([]Files, error) {
 	return respData.InsertFiles.Files, nil
 }
 
-func (gg *GamtracGql) RunDeleteFiles(not_rev int) ([]Files, error) {
+func (gg *GamtracGql) RunDeleteFiles(currentRevision int) ([]Files, error) {
 	var respData struct {
 		DeleteFiles struct {
 			Files []Files `json:"returning"`
@@ -100,8 +100,8 @@ func (gg *GamtracGql) RunDeleteFiles(not_rev int) ([]Files, error) {
 	}
 
 	query := `
-	mutation ($not_revision: Int) {
-		delete_files(where: {revision: {_neq: $not_revision}}) {
+	mutation ($cur_rev: Int) {
+		delete_files(where: {revision: {_lt: $cur_rev}}) {
 			returning {
 				file_id
 				revision
@@ -110,7 +110,7 @@ func (gg *GamtracGql) RunDeleteFiles(not_rev int) ([]Files, error) {
 	}
 	`
 	vars := map[string]interface{}{ // what the fuck, this is clearly map[string]int
-		"not_revision": not_rev,
+		"cur_rev": currentRevision,
 	}
 	if err := gg.Run(query, &respData, vars); err != nil {
 		return nil, err
@@ -138,7 +138,6 @@ func (gg *GamtracGql) RunCreateRevision() (*int, error) {
 	if err := gg.Run(query, &respData, vars); err != nil {
 		return nil, err
 	}
-	var ret int
-	ret = respData.CreateRevision.Revisions[0].RevisionID
-	return &ret, nil
+
+	return respData.CreateRevision.Revisions[0].RevisionID, nil
 }
