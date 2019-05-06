@@ -39,35 +39,17 @@ func GetFileOwnerUID(filename string) (*string, error) {
 	return &sidString, nil
 }
 
-// Helper function to check for a used drive and enumerate through available drives
-func findUnusedDrive() (*string, error) {
-	alpha := []string{"Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
-		"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
-		"N", "O", "P"}
-	for _, letter := range alpha {
-		if _, err := os.Stat(letter + `:\`); os.IsNotExist(err) {
-			return &letter, nil
-		}
-	}
-	return nil, fmt.Errorf("could not find an empty drive letter to mount things into")
-}
-
 // Remove a drive
 func UnmountShare(local string) ([]byte, error) {
 	return exec.Command("net", "use", local, "/delete").CombinedOutput()
 }
 
 func MountShare(share string, domain string, user string, pass string) (*string, error) {
-	letter, err := findUnusedDrive()
-	if err != nil {
-		return nil, err
-	}
-	tmpdir := *letter + `:`
-	// fmt.Printf("%v", []string{"net", "use", tmpdir, share, fmt.Sprintf(`/user:%s\%s`, domain, user), pass, "/P:YES"})
-	output, err := exec.Command("net", "use", tmpdir, share, fmt.Sprintf(`/user:%s\%s`, domain, user), pass, "/P:YES").CombinedOutput()
+	output, err := exec.Command("net", "use", share, fmt.Sprintf(`/user:%s\%s`, domain, user), pass, "/P:YES").CombinedOutput()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v", string(output))
 		return nil, err
 	}
+	tmpdir := share
 	return &tmpdir, nil
 }

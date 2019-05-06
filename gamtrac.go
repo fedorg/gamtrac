@@ -180,14 +180,19 @@ func main() {
 	} else {
 		paths = append(paths, args...)
 	}
-
-	tmpdir, err := scanner.MountShare(`\\srv-rnd-spb\rnddata`, "biocad", username, pass)
-	if err != nil {
-		panic(err)
+	for i, p := range paths {
+		if p[:2] == `\\` {
+			fmt.Printf("Mounting share `%v` using user %v\\%v", p, "biocad", username)
+			tmpdir, err := scanner.MountShare(p, "biocad", username, pass)
+			if err != nil {
+				panic(err)
+			}
+			defer scanner.UnmountShare(*tmpdir)
+			fmt.Printf("Mounted share `%v` at `%v`", p, *tmpdir)
+			paths[i] = *tmpdir // override p
+		}
 	}
-	defer scanner.UnmountShare(*tmpdir)
-	paths = []string{*tmpdir} // override
-
+	return
 	gg := api.NewGamtracGql("https://fedor-hasura-test.herokuapp.com/v1alpha1/graphql", 5000, false)
 
 	for {
