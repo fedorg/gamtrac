@@ -54,6 +54,7 @@ func (gg *GamtracGql) RunFetchFiles(rev int) ([]Files, error) {
 		  file_id
 		  filename
 		  revision
+		  data
 		}
 	}
 	`
@@ -78,7 +79,6 @@ func (gg *GamtracGql) RunInsertFiles(files []Files) ([]Files, error) {
 		insert_files(objects: $files) {
 		  returning {
 			file_id
-			revision
 		  }
 		}
 	  }

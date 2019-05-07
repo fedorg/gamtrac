@@ -15,6 +15,9 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/fatih/structs"
+	"github.com/r3labs/diff"
 )
 
 type HashDigest = api.HashDigest
@@ -63,7 +66,7 @@ func processFile(inputs <-chan AnnotItem, output chan<- *AnnotResult, wg *sync.W
 	for input := range inputs {
 		filename := input.path
 		info := input.fileInfo
-		fmt.Println("Processing file: ", filename)
+		// fmt.Println("Processing file: ", filename)
 		var rule *string
 		var ruleVars map[string]string
 		// TODO: run these as goroutines in parallel
@@ -84,7 +87,7 @@ func processFile(inputs <-chan AnnotItem, output chan<- *AnnotResult, wg *sync.W
 			errors = append(errors, NewFileError(err))
 		}
 		ret := api.NewAnnotResult(filename, info.Size(), info.Mode(), info.ModTime(), input.queuedAt, time.Now(), info.IsDir(), owner, hash, rule, &ruleVars, errors)
-		fmt.Println("Finished processing file: ", filename)
+		// fmt.Println("Finished processing file: ", filename)
 		output <- &ret
 	}
 }
@@ -110,7 +113,7 @@ func collectResults(annots <-chan *AnnotResult, out chan<- map[string]*AnnotResu
 	go func() {
 		defer wg.Done()
 		for an := range annots {
-			fmt.Printf("Collecting %v", an.Path)
+			// fmt.Printf("Collecting %v", an.Path)
 			set(an.Path, an)
 		}
 	}()
@@ -122,28 +125,140 @@ func PushFileUpdates(gg *api.GamtracGql, revision int, rslts map[string]*AnnotRe
 	newFiles := make([]Files, len(rslts))
 	i := 0
 	for filename, r := range rslts {
-		data, err := json.Marshal(r)
-		if err != nil {
-			return nil, err
-		}
-		jsonStr := string(data)
+		data := structs.Map(r)
 		newFiles[i] = Files{
 			Filename: filename,
 			Revision: revision,
-			Data:     jsonStr,
+			Data:     data,
 		}
 		i++
 	}
+	oldFiles, err := gg.RunFetchFiles(revision - 1)
+	// TODO: get last successful revision and check if the current revision is higher that that
+	if err != nil {
+		return nil, err
+	}
+
+	changes, err := CompareFileLists(oldFiles, newFiles)
+	if err != nil {
+		return nil, err
+	}
+	ctext, err := json.MarshalIndent(changes.CreatedInNew, "", " ")
+	dtext, err := json.MarshalIndent(changes.RemovedFromOld, "", " ")
+	mtext, err := json.MarshalIndent(changes.ModifiedInNew, "", " ")
+	fmt.Printf("Created:\n%v\n", string(ctext))
+	fmt.Printf("Removed:\n%v\n", string(dtext))
+	fmt.Printf("Changed:\n%v\n", string(mtext))
+
 	insertedFiles, err := gg.RunInsertFiles(newFiles)
 	if err != nil {
 		return nil, err
 	}
-	_, err = gg.RunDeleteFiles(revision) // might not delete stuff, but we'll just print this error
+	// patch returned file ids back into new files
+	if len(insertedFiles) != len(newFiles) {
+		return nil, fmt.Errorf("invalid number of file records inserted: expected %v, got %v", len(newFiles), len(insertedFiles))
+	}
+	for i, dbfile := range insertedFiles {
+		newFiles[i].FileID = dbfile.FileID
+	}
+
+	_, err = gg.RunDeleteFiles(revision - 2) // might not delete stuff, but we'll just print this error
 	if err != nil {
 		fmt.Fprint(os.Stderr, err)
 	}
 	// TODO: this function has shit error api
 	return insertedFiles, nil
+}
+
+type FilePropDiff struct {
+	NewPropValues map[string]string
+}
+
+type FileDiffResults struct {
+	CreatedInNew   map[string]*Files
+	RemovedFromOld map[string]*Files
+	ModifiedInNew  map[string]FilePropDiff
+}
+
+func ListToMap(list []Files) map[string]*Files {
+	ret := map[string]*Files{}
+	for i, r := range list {
+		ret[r.Filename] = &list[i]
+	}
+	return ret
+}
+
+func CompareFileLists(oldFiles []Files, newFiles []Files) (*FileDiffResults, error) {
+	old, new := ListToMap(oldFiles), ListToMap(newFiles)
+	CreatedInNew, RemovedFromOld := map[string]*Files{}, map[string]*Files{}
+	// go over old and detect deletes
+	for filename, f := range old {
+		if _, ok := new[filename]; !ok {
+			RemovedFromOld[filename] = f
+		}
+	}
+	// go over new and detect creates
+	for filename, f := range new {
+		if _, ok := old[filename]; !ok {
+			CreatedInNew[filename] = f
+		}
+	}
+
+	fillStruct := func(data map[string]interface{}, recv interface{}) error {
+		bytes, err := json.Marshal(data)
+		if err != nil {
+			return err
+		}
+		err = json.Unmarshal(bytes, recv)
+		return err
+	}
+
+	// detect changes:
+	//	over new:
+	//		if in new: skip (leaves intersection)
+	//		unmarshal data
+	//		compare data
+	//		if compare non identical, detect modified
+	modified := map[string]FilePropDiff{}
+	for filename := range new {
+		of, inOld := old[filename]
+		nf, inNew := new[filename]
+		if !(inNew && inOld) {
+			continue
+		}
+		var ndata, odata AnnotResult
+		err := fillStruct(of.Data, &odata)
+		if err != nil {
+			return nil, err
+		}
+		err = fillStruct(nf.Data, &ndata)
+		if err != nil {
+			return nil, err
+		}
+		changes, err := diff.Diff(odata, ndata)
+		if err != nil {
+			return nil, err
+		}
+		newProps := map[string]string{}
+		for _, c := range changes {
+			key := c.Path[0]
+			bytes, err := json.Marshal(c.To)
+			if err != nil {
+				return nil, err
+			}
+			val := string(bytes)
+			newProps[key] = val
+		}
+		if len(newProps) > 0 {
+			modified[filename] = FilePropDiff{NewPropValues: newProps}
+		}
+		// outputs: deletes, creates, modified
+	}
+	return &FileDiffResults{
+		CreatedInNew:   CreatedInNew,
+		RemovedFromOld: RemovedFromOld,
+		ModifiedInNew:  modified,
+	}, nil
 }
 
 func main() {
@@ -190,7 +305,8 @@ func main() {
 			fmt.Printf("Mounting share `%v` using user %v\\%v", p, "biocad", username)
 			tmpdir, err := scanner.MountShare(p, "biocad", username, pass)
 			if err != nil {
-				panic(err)
+				fmt.Fprintf(os.Stderr, "%v", err)
+				continue
 			}
 			defer scanner.UnmountShare(*tmpdir)
 			fmt.Printf("Mounted share `%v` at `%v`", p, *tmpdir)
@@ -236,7 +352,7 @@ func main() {
 					// panic(err)
 					return err
 				}
-				fmt.Printf("Queued: %s\n", path)
+				// fmt.Printf("Queued: %s\n", path)
 				func() { inputs <- AnnotItem{path: path, fileInfo: f, queuedAt: time.Now(), rules: rules} }()
 				return nil
 			})

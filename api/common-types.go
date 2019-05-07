@@ -25,18 +25,18 @@ type FileError struct {
 }
 
 type AnnotResult struct {
-	Path        string             // required
-	Size        int64              // required
-	Mode        os.FileMode        // required
-	ModTime     time.Time          // required
-	QueuedAt    time.Time          // required
-	ProcessedAt time.Time          // required
-	IsDir       bool               // required
-	OwnerUID    *string            // optional
-	Hash        *HashDigest        // optional
-	Pattern     *string            // optional
-	Parsed      *map[string]string // optional
-	Errors      []FileError        // required
+	Path        string             `diff:"Path,identifier"`// required
+	Size        int64              `diff:"Size"`// required
+	Mode        os.FileMode        `diff:"Mode"`// required
+	ModTime     time.Time          `diff:"ModTime"`// required
+	QueuedAt    time.Time          `diff:"-"`// required
+	ProcessedAt time.Time          `diff:"-"`// required
+	IsDir       bool               `diff:"IsDir"`// required
+	OwnerUID    *string            `diff:"OwnerUID"`// optional
+	Hash        *HashDigest        `diff:"Hash"`// optional
+	Pattern     *string            `diff:"Pattern"`// optional
+	Parsed      *map[string]string `diff:"Parsed"`// optional
+	Errors      []FileError        `diff:"-" json:"-"`// required
 }
 
 func NewAnnotResult(
