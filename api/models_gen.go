@@ -40,8 +40,9 @@ type IntegerComparisonExp struct {
 }
 
 type Revisions struct {
-	RevisionID *int       `json:"revision_id"`
-	Timestamp  *time.Time `json:"timestamp"`
+	RevisionID int       `json:"revision_id"`
+	Started    time.Time `json:"started"`
+	Completed  time.Time `json:"completed"`
 }
 
 type TextComparisonExp struct {

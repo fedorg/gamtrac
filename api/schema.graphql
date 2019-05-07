@@ -11,8 +11,9 @@ type files {
 scalar Time
 
 type revisions {
-  revision_id: Int
-  timestamp: Time
+  revision_id: Int!
+  started: Time!
+  completed: Time!
 }
 
 

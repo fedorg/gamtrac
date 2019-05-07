@@ -139,5 +139,5 @@ func (gg *GamtracGql) RunCreateRevision() (*int, error) {
 		return nil, err
 	}
 
-	return respData.CreateRevision.Revisions[0].RevisionID, nil
+	return &(respData.CreateRevision.Revisions[0].RevisionID), nil
 }
