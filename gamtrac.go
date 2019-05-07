@@ -257,8 +257,5 @@ func main() {
 		time.Sleep(time.Second * 1)
 		return
 	}
-	// TODO: wait for all the result combos to finish
-
-	// wait for everyone
 
 }
