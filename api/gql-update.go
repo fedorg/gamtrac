@@ -141,3 +141,41 @@ func (gg *GamtracGql) RunCreateRevision() (*int, error) {
 
 	return &(respData.CreateRevision.Revisions[0].RevisionID), nil
 }
+
+func (gg *GamtracGql) RunInsetDomainUsers(users []DomainUsers) error {
+	// var respData struct {
+	// 	InsertDomainUsers struct {
+	// 		DomainUsers []DomainUsers `json:"returning"`
+	// 	} `json:"insert_domain_users"`
+	// }
+
+	query := `
+	mutation ($users: [domain_users_insert_input!]!) {
+		insert_domain_users(objects: $users) {
+			affected_rows
+		}
+	  }
+	`
+	vars := map[string]interface{}{
+		"users": users,
+	}
+	return gg.Run(query, nil, vars)
+}
+
+func (gg *GamtracGql) RunDeleteDomainUsers() error {
+	// var respData struct {
+	// 	DeleteFiles struct {
+	// 		Files []Files `json:"returning"`
+	// 	} `json:"delete_domain_users"`
+	// }
+
+	query := `
+	mutation {
+		delete_domain_users(where: {}) {
+			affected_rows
+		}
+	}
+	`
+	vars := map[string]interface{}{}
+	return gg.Run(query, nil, vars)
+}

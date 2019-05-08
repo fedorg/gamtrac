@@ -262,6 +262,8 @@ func CompareFileLists(oldFiles []Files, newFiles []Files) (*FileDiffResults, err
 }
 
 func main() {
+	gg := api.NewGamtracGql("https://fedor-hasura-test.herokuapp.com/v1alpha1/graphql", 5000, false)
+
 	srvState := api.NewServerState()
 	go api.Serve(srvState)
 
@@ -287,18 +289,31 @@ func main() {
 	}
 	defer lc.Close()
 
-	users, err := scanner.LdapSearchUsers(lc, "dc=biocad,dc=loc", fmt.Sprintf("(objectSid=%s)", *owner))
+	users, err := scanner.LdapSearchUsers(lc, "dc=biocad,dc=loc", "") // fmt.Sprintf("(objectSid=%s)", *owner))
 	if err != nil {
 		panic(err)
 	}
-	for _, user := range users {
+	domainUsers := make([]api.DomainUsers, len(users))
+	for i, user := range users {
 		grps := scanner.FilterGroups(user.MemberOf, []string{"DC=loc", "DC=biocad", "OU=biocad", "OU=Groups"})
-		user.MemberOf = grps
-		fmt.Println(user)
+		// used only to hoist list of groups into sql text[] type
+		domainUsers[i] = api.DomainUsers{
+			Sid:      user.ObjectSid,
+			Username: user.SAMAccountName,
+			Name:     user.CN,
+			Groups:   grps,
+		}
+		// fmt.Println(user)
 	}
+	err = gg.RunDeleteDomainUsers()
 	if err != nil {
 		panic(err)
 	}
+	err = gg.RunInsetDomainUsers(domainUsers)
+	if err != nil {
+		panic(err)
+	}
+
 	fmt.Print(*owner)
 
 	args := os.Args[1:]
@@ -321,7 +336,6 @@ func main() {
 			paths[i] = *tmpdir // override p
 		}
 	}
-	gg := api.NewGamtracGql("https://fedor-hasura-test.herokuapp.com/v1alpha1/graphql", 5000, false)
 
 	for {
 		rev, err := gg.RunCreateRevision()

@@ -236,6 +236,7 @@ func LdapSearchUsers(conn *ldap.Conn, searchDN string, filter string) ([]LdapUse
 			case "memberof":
 				memberships := [][]string{}
 				for _, dn := range getAttributes(entry, fld) {
+					if dn == "" {continue}
 					grp, err := parseGroup(dn)
 					if err != nil {
 						fmt.Println(err)

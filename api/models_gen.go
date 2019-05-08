@@ -6,6 +6,13 @@ import (
 	"time"
 )
 
+type DomainUsers struct {
+	Sid      string     `json:"sid"`
+	Username string     `json:"username"`
+	Name     string     `json:"name"`
+	Groups   [][]string `json:"groups"`
+}
+
 type FilesBoolExp struct {
 	_and     []*FilesBoolExp       `json:"_and"`
 	_not     *FilesBoolExp         `json:"_not"`

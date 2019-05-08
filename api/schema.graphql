@@ -17,6 +17,14 @@ type revisions {
 }
 
 
+type domain_users {
+  sid: String!
+  username: String!
+  name: String!
+  groups: [[String!]!]! # actually it is JSON
+}
+
+
 type Query {
     files(
     limit: Int
