@@ -286,32 +286,13 @@ func main() {
 		panic(err)
 	}
 	defer lc.Close()
-	filterGroups := func(memberships [][]string, required []string) [][]string {
-		ret := [][]string{}
-		for _, grp := range memberships {
-			if len(required) > len(grp) {
-				continue
-			}
-			passed := true
-			for i, rq := range required {
-				if grp[i] != rq {
-					passed = false
-					break
-				}
-			}
-			if !passed {
-				continue
-			}
-			ret = append(ret, grp[len(required):])
-		}
-		return ret
-	}
+
 	users, err := scanner.LdapSearchUsers(lc, "dc=biocad,dc=loc", fmt.Sprintf("(objectSid=%s)", *owner))
 	if err != nil {
 		panic(err)
 	}
 	for _, user := range users {
-		grps := filterGroups(user.MemberOf, []string{"DC=loc", "DC=biocad", "OU=biocad", "OU=Groups"})
+		grps := scanner.FilterGroups(user.MemberOf, []string{"DC=loc", "DC=biocad", "OU=biocad", "OU=Groups"})
 		user.MemberOf = grps
 		fmt.Println(user)
 	}

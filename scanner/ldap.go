@@ -180,6 +180,27 @@ func parseGroup(dn string) ([]string, error) {
 }
 
 
+func FilterGroups(memberships [][]string, required []string) [][]string {
+	ret := [][]string{}
+	for _, grp := range memberships {
+		if len(required) > len(grp) {
+			continue
+		}
+		passed := true
+		for i, rq := range required {
+			if grp[i] != rq {
+				passed = false
+				break
+			}
+		}
+		if !passed {
+			continue
+		}
+		ret = append(ret, grp[len(required):])
+	}
+	return ret
+}
+
 func LdapSearchUsers(conn *ldap.Conn, searchDN string, filter string) ([]LdapUserInfo, error) {
 	if filter == "" {
 		filter = "(&(objectCategory=person)(objectClass=user)(SamAccountName=*))"
