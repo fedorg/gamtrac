@@ -268,30 +268,57 @@ func main() {
 	username := os.Getenv("GAMTRAC_USERNAME")
 	pass := os.Getenv("GAMTRAC_PASSWORD")
 	// // rslt := map[string]AnnotResult{}
-	// owner, err := GetFileOwnerUID(`C:\Users\fed00\Desktop\2019.02.19 DI FAVEA\03-Data-Management-and-Integrity-3-RU.pdf`)
-	// owner, err = GetFileOwnerUID("testdata.csv")
-	// owner, err = GetFileOwnerUID(`R:\DAR\ОБИ\archive\Raw Data Guava S1.3.L32-24.004 (А-0005492)\Raw Data\2018-10-20_test.fcs`)
-	// li, err := NewConnectionInfo("SERVER-DC3.biocad.loc", "biocad", username, pass, false, false)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// lc, err := LdapConnect(li)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// defer lc.Close()
-	// users, err := LdapSearchUsers(lc, "dc=biocad,dc=loc", fmt.Sprintf("(objectSid=%s)", *owner))
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// for _, user := range users {
-	// 	fmt.Println(user)
-	// }
-
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// fmt.Print(*owner)
+	shareMnt, err := scanner.MountShare(`\\srv-rnd-spb\rnddata`, "biocad", username, pass)
+	if err != nil {
+		panic(err)
+	}
+	defer scanner.UnmountShare(*shareMnt)
+	shareTarget := *shareMnt + `\ДАР\ОБИ\archive\Raw Data Guava S1.3.L32-24.004 (А-0005492)\Raw Data\2018-10-20_test.fcs`
+	owner, err := scanner.GetFileOwnerUID(`C:\Users\fed00\Desktop\2019.02.19 DI FAVEA\03-Data-Management-and-Integrity-3-RU.pdf`)
+	owner, err = scanner.GetFileOwnerUID("testdata.csv")
+	owner, err = scanner.GetFileOwnerUID(shareTarget)
+	li, err := scanner.NewConnectionInfo("biocad.loc", "biocad", username, pass, true, false)
+	if err != nil {
+		panic(err)
+	}
+	lc, err := scanner.LdapConnect(li)
+	if err != nil {
+		panic(err)
+	}
+	defer lc.Close()
+	filterGroups := func(memberships [][]string, required []string) [][]string {
+		ret := [][]string{}
+		for _, grp := range memberships {
+			if len(required) > len(grp) {
+				continue
+			}
+			passed := true
+			for i, rq := range required {
+				if grp[i] != rq {
+					passed = false
+					break
+				}
+			}
+			if !passed {
+				continue
+			}
+			ret = append(ret, grp[len(required):])
+		}
+		return ret
+	}
+	users, err := scanner.LdapSearchUsers(lc, "dc=biocad,dc=loc", fmt.Sprintf("(objectSid=%s)", *owner))
+	if err != nil {
+		panic(err)
+	}
+	for _, user := range users {
+		grps := filterGroups(user.MemberOf, []string{"DC=loc", "DC=biocad", "OU=biocad", "OU=Groups"})
+		user.MemberOf = grps
+		fmt.Println(user)
+	}
+	if err != nil {
+		panic(err)
+	}
+	fmt.Print(*owner)
 
 	args := os.Args[1:]
 	var paths []string

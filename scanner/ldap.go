@@ -6,16 +6,18 @@ import (
 	"gopkg.in/ldap.v2"
 	"net"
 	"reflect"
+	"encoding/binary"
+	"strconv"
 	"strings"
 )
 
 const _PAGING_SIZE = 500
 
 type LdapUserInfo struct {
-	// ObjectSid      string
+	ObjectSid      string
 	SAMAccountName string
 	CN             string
-	MemberOf       string
+	MemberOf       [][]string
 	// sAMAccountType    string
 	// userPrincipalName string
 	// displayName       string
@@ -153,6 +155,31 @@ func LdapSearch(searchDN string, filter string, attributes []string, conn *ldap.
 	return sr, nil
 }
 
+type SID []byte
+
+func parseGroup(dn string) ([]string, error) {
+	dnParsed, err := ldap.ParseDN(dn)
+	if err != nil {
+		return nil, err
+	}
+	grps := []string{}
+	for _, rdn := range  dnParsed.RDNs {
+		for _, tv := range rdn.Attributes {
+			grps = append(grps, tv.Type + "=" + tv.Value)
+		}
+	}
+	if (len(grps) == 0) {
+		return nil, fmt.Errorf("dn `%v` does not contain group description", dn)
+	}
+	// hierarchical group order
+	rgrp := make([]string, len(grps))
+	for i, g := range grps {
+		rgrp[len(grps)-1-i] = g
+	}
+	return rgrp, nil
+}
+
+
 func LdapSearchUsers(conn *ldap.Conn, searchDN string, filter string) ([]LdapUserInfo, error) {
 	if filter == "" {
 		filter = "(&(objectCategory=person)(objectClass=user)(SamAccountName=*))"
@@ -181,6 +208,26 @@ func LdapSearchUsers(conn *ldap.Conn, searchDN string, filter string) ([]LdapUse
 		info := new(LdapUserInfo)
 		for _, fld := range GetStructFields(info) {
 			val := strings.Join(getAttributes(entry, fld), "\n")
+			fldlow := strings.ToLower(fld)
+			switch fldlow{
+			case "objectsid":
+				val = SID(val).String()
+			case "memberof":
+				memberships := [][]string{}
+				for _, dn := range getAttributes(entry, fld) {
+					grp, err := parseGroup(dn)
+					if err != nil {
+						fmt.Println(err)
+						continue
+					}
+					memberships = append(memberships, grp)
+				}
+				info.MemberOf = memberships
+				
+				
+				continue
+
+			}
 			err := SetStructStringField(info, fld, val)
 			if err != nil {
 				return nil, err
@@ -191,18 +238,20 @@ func LdapSearchUsers(conn *ldap.Conn, searchDN string, filter string) ([]LdapUse
 	return ret, nil
 }
 
-// func (s SID) String() string {
-// 	if len(s) < 8 || s[0] != sidRevision || len(s) != (int(s[1])*4)+8 {
-// 		return ""
-// 	}
 
-// 	ret := []byte("S-1-")
-// 	ret = strconv.AppendUint(ret, binary.BigEndian.Uint64(s[:8])&0xFFFFFFFFFFFF, 10)
+func (s SID) String() string {
+	sidRevision := byte(1)
+	if len(s) < 8 || s[0] != sidRevision || len(s) != (int(s[1])*4)+8 {
+		return ""
+	}
 
-// 	for i := 0; i < int(s[1]); i++ {
-// 		ret = append(ret, "-"...)
-// 		ret = strconv.AppendUint(ret, uint64(binary.LittleEndian.Uint32(s[8+i*4:])), 10)
-// 	}
+	ret := []byte("S-1-")
+	ret = strconv.AppendUint(ret, binary.BigEndian.Uint64(s[:8])&0xFFFFFFFFFFFF, 10)
 
-// 	return string(ret)
-// }
+	for i := 0; i < int(s[1]); i++ {
+		ret = append(ret, "-"...)
+		ret = strconv.AppendUint(ret, uint64(binary.LittleEndian.Uint32(s[8+i*4:])), 10)
+	}
+
+	return string(ret)
+}
