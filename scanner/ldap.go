@@ -86,7 +86,7 @@ func LdapConnect(li *LdapInfo) (*ldap.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Printf("[i] BIND with '%s' successful...\n[i] Begin dump domain info...\n", li.User)
+	fmt.Printf("[i] BIND with '%s' successful...\n", li.User)
 	return conn, nil
 }
 
