@@ -50,10 +50,10 @@ func (gg *GamtracGql) RunFetchFiles(rev int) ([]Files, error) {
 
 	query := `
 	query ($revision: Int) {
-		files(where: {revision: {_eq: $revision}}) {
+		files(where: {revision_id: {_eq: $revision}}) {
 		  file_id
 		  filename
-		  revision
+		  revision_id
 		  data
 		}
 	}
@@ -101,10 +101,10 @@ func (gg *GamtracGql) RunDeleteFiles(currentRevision int) ([]Files, error) {
 
 	query := `
 	mutation ($cur_rev: Int) {
-		delete_files(where: {revision: {_lt: $cur_rev}}) {
+		delete_files(where: {revision_id: {_lt: $cur_rev}}) {
 			returning {
 				file_id
-				revision
+				revision_id
 			}
 		}
 	}

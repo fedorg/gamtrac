@@ -5,7 +5,7 @@ type files {
   ): json!
   file_id: Int!
   filename: String!
-  revision: Int!
+  revision_id: Int!
 }
 
 scalar Time
@@ -59,7 +59,7 @@ input files_insert_input {
   data: json
   file_id: Int
   filename: String
-  revision: Int
+  revision_id: Int
 }
 
 input text_comparison_exp {
@@ -99,6 +99,6 @@ input files_bool_exp {
   _or: [files_bool_exp]
   file_id: integer_comparison_exp
   filename: text_comparison_exp
-  revision: integer_comparison_exp
+  revision_id: integer_comparison_exp
 }
 

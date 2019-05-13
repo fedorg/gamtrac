@@ -127,9 +127,9 @@ func PushFileUpdates(gg *api.GamtracGql, revision int, rslts map[string]*AnnotRe
 	for filename, r := range rslts {
 		data := structs.Map(r)
 		newFiles[i] = Files{
-			Filename: filename,
-			Revision: revision,
-			Data:     data,
+			Filename:   filename,
+			RevisionID: revision,
+			Data:       data,
 		}
 		i++
 	}

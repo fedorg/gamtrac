@@ -14,19 +14,19 @@ type DomainUsers struct {
 }
 
 type FilesBoolExp struct {
-	_and     []*FilesBoolExp       `json:"_and"`
-	_not     *FilesBoolExp         `json:"_not"`
-	_or      []*FilesBoolExp       `json:"_or"`
-	FileID   *IntegerComparisonExp `json:"file_id"`
-	Filename *TextComparisonExp    `json:"filename"`
-	Revision *IntegerComparisonExp `json:"revision"`
+	_and       []*FilesBoolExp       `json:"_and"`
+	_not       *FilesBoolExp         `json:"_not"`
+	_or        []*FilesBoolExp       `json:"_or"`
+	FileID     *IntegerComparisonExp `json:"file_id"`
+	Filename   *TextComparisonExp    `json:"filename"`
+	RevisionID *IntegerComparisonExp `json:"revision_id"`
 }
 
 type FilesInsertInput struct {
-	Data     *string `json:"data"`
-	FileID   *int    `json:"file_id"`
-	Filename *string `json:"filename"`
-	Revision *int    `json:"revision"`
+	Data       *string `json:"data"`
+	FileID     *int    `json:"file_id"`
+	Filename   *string `json:"filename"`
+	RevisionID *int    `json:"revision_id"`
 }
 
 type FilesMutationResponse struct {
