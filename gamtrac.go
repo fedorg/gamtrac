@@ -18,6 +18,8 @@ import (
 	"github.com/fatih/structs"
 )
 
+const USE_HASH = false
+
 type HashDigest = api.HashDigest
 type FileError = api.FileError
 type AnnotResult = api.AnnotResult
@@ -36,6 +38,9 @@ var test_rules = []string{
 	"R:\\DAR\\LAM\\Screening group\\<Заказчик>\\1_Результаты, протоколы, отчеты\\<Измеряемый параметр>_<Метод анализа>\\<Проект>\\"}
 
 func computeHash(path string) (*HashDigest, error) {
+	if !USE_HASH {
+		return nil, nil
+	}
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -52,6 +57,7 @@ func computeHash(path string) (*HashDigest, error) {
 }
 
 func NewFileError(err error) FileError {
+	fmt.Fprintln(os.Stderr, err)
 	return FileError{
 		// Filename:  filename,
 		Error:     err,
@@ -68,11 +74,9 @@ func processFile(inputs <-chan AnnotItem, output chan<- *AnnotResult, wg *sync.W
 		var rule *string
 		var ruleVars map[string]string
 		// TODO: run these as goroutines in parallel
-		errors := make([]FileError, 0)
-		parsed, err := rules.ParseFilename(strings.ReplaceAll(filename, "\\", "/"), input.rules, true)
-		if err != nil {
-			errors = append(errors, NewFileError(err))
-		} else {
+		errors := []FileError{}
+		parsed := rules.ParseFilename(strings.ReplaceAll(filename, "\\", "/"), input.rules, true)
+		if parsed != nil {
 			rule = &parsed.Rule.Rule
 			ruleVars = parsed.AsMap()
 		}
@@ -80,9 +84,12 @@ func processFile(inputs <-chan AnnotItem, output chan<- *AnnotResult, wg *sync.W
 		if err != nil {
 			errors = append(errors, NewFileError(err))
 		}
-		hash, err := computeHash(filename)
-		if err != nil {
-			errors = append(errors, NewFileError(err))
+		var hash *HashDigest = nil
+		if !info.IsDir() {
+			hash, err = computeHash(filename)
+			if err != nil {
+				errors = append(errors, NewFileError(err))
+			}
 		}
 		ret := api.NewAnnotResult(filename, info.Size(), info.Mode(), info.ModTime(), input.queuedAt, time.Now(), info.IsDir(), owner, hash, rule, &ruleVars, errors)
 		// fmt.Println("Finished processing file: ", filename)
@@ -123,7 +130,14 @@ func PushFileUpdates(gg *api.GamtracGql, revision int, rslts map[string]*AnnotRe
 	newFiles := make([]Files, len(rslts))
 	i := 0
 	for filename, r := range rslts {
-		data := structs.Map(r)
+		var data map[string]interface{}
+		data = structs.Map(r)
+		delete(data, "Path")
+		if r.Hash != nil {
+			data["Hash"] = r.Hash.String()
+		} else {
+			data["Hash"] = nil
+		}
 		newFiles[i] = Files{
 			Filename:   filename,
 			RevisionID: revision,

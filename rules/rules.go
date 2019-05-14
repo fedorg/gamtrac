@@ -166,13 +166,13 @@ func FindBestRuleIndex(parsed []RuleMatch) int {
 	return ret
 }
 
-func ParseFilename(filename string, rules []RuleMatcher, onlyFull bool) (*RuleMatch, error) {
+func ParseFilename(filename string, rules []RuleMatcher, onlyFull bool) *RuleMatch {
 	matches := MatchAllRules(filename, rules)
 	i := FindBestRuleIndex(matches)
 	if (i == -1) || (onlyFull && !matches[i].full) {
-		return nil, fmt.Errorf("No rules match the filename `%s`", filename)
+		return nil
 	}
-	return &matches[i], nil
+	return &matches[i]
 }
 
 type strMap = map[string]string
