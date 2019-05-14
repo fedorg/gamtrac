@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"crypto/sha256"
-	"encoding/json"
 	"fmt"
 	"gamtrac/api"
 	"gamtrac/rules"
@@ -17,7 +16,6 @@ import (
 	"time"
 
 	"github.com/fatih/structs"
-	"github.com/r3labs/diff"
 )
 
 type HashDigest = api.HashDigest
@@ -133,24 +131,8 @@ func PushFileUpdates(gg *api.GamtracGql, revision int, rslts map[string]*AnnotRe
 		}
 		i++
 	}
-	oldFiles, err := gg.RunFetchFiles(revision - 1)
-	// TODO: get last successful revision and check if the current revision is higher that that
-	if err != nil {
-		return nil, err
-	}
 
-	changes, err := CompareFileLists(oldFiles, newFiles)
-	if err != nil {
-		return nil, err
-	}
-	ctext, err := json.MarshalIndent(changes.CreatedInNew, "", " ")
-	dtext, err := json.MarshalIndent(changes.RemovedFromOld, "", " ")
-	mtext, err := json.MarshalIndent(changes.ModifiedInNew, "", " ")
-	fmt.Printf("Created:\n%v\n", string(ctext))
-	fmt.Printf("Removed:\n%v\n", string(dtext))
-	fmt.Printf("Changed:\n%v\n", string(mtext))
-
-	insertedFiles, err := gg.RunInsertFiles(newFiles)
+	insertedFiles, err := gg.RunUpsertFiles(newFiles)
 	if err != nil {
 		return nil, err
 	}
@@ -161,23 +143,14 @@ func PushFileUpdates(gg *api.GamtracGql, revision int, rslts map[string]*AnnotRe
 	for i, dbfile := range insertedFiles {
 		newFiles[i].FileID = dbfile.FileID
 	}
-
-	_, err = gg.RunDeleteFiles(revision - 2) // might not delete stuff, but we'll just print this error
+	// delete old files that are not in this revision
+	// TODO: this should not delete files under untracked folders
+	_, err = gg.RunDeleteFiles(revision)
 	if err != nil {
 		fmt.Fprint(os.Stderr, err)
 	}
 	// TODO: this function has shit error api
 	return insertedFiles, nil
-}
-
-type FilePropDiff struct {
-	NewPropValues map[string]string
-}
-
-type FileDiffResults struct {
-	CreatedInNew   map[string]*Files
-	RemovedFromOld map[string]*Files
-	ModifiedInNew  map[string]FilePropDiff
 }
 
 func ListToMap(list []Files) map[string]*Files {
@@ -186,79 +159,6 @@ func ListToMap(list []Files) map[string]*Files {
 		ret[r.Filename] = &list[i]
 	}
 	return ret
-}
-
-func CompareFileLists(oldFiles []Files, newFiles []Files) (*FileDiffResults, error) {
-	old, new := ListToMap(oldFiles), ListToMap(newFiles)
-	CreatedInNew, RemovedFromOld := map[string]*Files{}, map[string]*Files{}
-	// go over old and detect deletes
-	for filename, f := range old {
-		if _, ok := new[filename]; !ok {
-			RemovedFromOld[filename] = f
-		}
-	}
-	// go over new and detect creates
-	for filename, f := range new {
-		if _, ok := old[filename]; !ok {
-			CreatedInNew[filename] = f
-		}
-	}
-
-	fillStruct := func(data map[string]interface{}, recv interface{}) error {
-		bytes, err := json.Marshal(data)
-		if err != nil {
-			return err
-		}
-		err = json.Unmarshal(bytes, recv)
-		return err
-	}
-
-	// detect changes:
-	//	over new:
-	//		if in new: skip (leaves intersection)
-	//		unmarshal data
-	//		compare data
-	//		if compare non identical, detect modified
-	modified := map[string]FilePropDiff{}
-	for filename := range new {
-		of, inOld := old[filename]
-		nf, inNew := new[filename]
-		if !(inNew && inOld) {
-			continue
-		}
-		var ndata, odata AnnotResult
-		err := fillStruct(of.Data, &odata)
-		if err != nil {
-			return nil, err
-		}
-		err = fillStruct(nf.Data, &ndata)
-		if err != nil {
-			return nil, err
-		}
-		changes, err := diff.Diff(odata, ndata)
-		if err != nil {
-			return nil, err
-		}
-		newProps := map[string]string{}
-		for _, c := range changes {
-			key := c.Path[0]
-			bytes, err := json.Marshal(c.To)
-			if err != nil {
-				return nil, err
-			}
-			val := string(bytes)
-			newProps[key] = val
-		}
-		if len(newProps) > 0 {
-			modified[filename] = FilePropDiff{NewPropValues: newProps}
-		}
-		// outputs: deletes, creates, modified
-	}
-	return &FileDiffResults{
-		CreatedInNew:   CreatedInNew,
-		RemovedFromOld: RemovedFromOld,
-		ModifiedInNew:  modified,
-	}, nil
 }
 
 func main() {
@@ -270,51 +170,41 @@ func main() {
 	username := os.Getenv("GAMTRAC_USERNAME")
 	pass := os.Getenv("GAMTRAC_PASSWORD")
 	// // rslt := map[string]AnnotResult{}
-	shareMnt, err := scanner.MountShare(`\\srv-rnd-spb\rnddata`, "biocad", username, pass)
-	if err != nil {
-		panic(err)
-	}
-	defer scanner.UnmountShare(*shareMnt)
-	shareTarget := *shareMnt + `\ДАР\ОБИ\archive\Raw Data Guava S1.3.L32-24.004 (А-0005492)\Raw Data\2018-10-20_test.fcs`
-	owner, err := scanner.GetFileOwnerUID(`C:\Users\fed00\Desktop\2019.02.19 DI FAVEA\03-Data-Management-and-Integrity-3-RU.pdf`)
-	owner, err = scanner.GetFileOwnerUID("testdata.csv")
-	owner, err = scanner.GetFileOwnerUID(shareTarget)
-	li, err := scanner.NewConnectionInfo("biocad.loc", "biocad", username, pass, true, false)
-	if err != nil {
-		panic(err)
-	}
-	lc, err := scanner.LdapConnect(li)
-	if err != nil {
-		panic(err)
-	}
-	defer lc.Close()
-
-	users, err := scanner.LdapSearchUsers(lc, "dc=biocad,dc=loc", "") // fmt.Sprintf("(objectSid=%s)", *owner))
-	if err != nil {
-		panic(err)
-	}
-	domainUsers := make([]api.DomainUsers, len(users))
-	for i, user := range users {
-		grps := scanner.FilterGroups(user.MemberOf, []string{"DC=loc", "DC=biocad", "OU=biocad", "OU=Groups"})
-		// used only to hoist list of groups into sql text[] type
-		domainUsers[i] = api.DomainUsers{
-			Sid:      user.ObjectSid,
-			Username: user.SAMAccountName,
-			Name:     user.CN,
-			Groups:   grps,
+	/*
+		li, err := scanner.NewConnectionInfo("biocad.loc", "biocad", username, pass, true, false)
+		if err != nil {
+			panic(err)
 		}
-		// fmt.Println(user)
-	}
-	err = gg.RunDeleteDomainUsers()
-	if err != nil {
-		panic(err)
-	}
-	err = gg.RunInsetDomainUsers(domainUsers)
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Print(*owner)
+		lc, err := scanner.LdapConnect(li)
+		if err != nil {
+			panic(err)
+		}
+		defer lc.Close()
+		users, err := scanner.LdapSearchUsers(lc, "dc=biocad,dc=loc", "") // fmt.Sprintf("(objectSid=%s)", *owner))
+		if err != nil {
+			panic(err)
+		}
+		domainUsers := make([]api.DomainUsers, len(users))
+		for i, user := range users {
+			grps := scanner.FilterGroups(user.MemberOf, []string{"DC=loc", "DC=biocad", "OU=biocad", "OU=Groups"})
+			// used only to hoist list of groups into sql text[] type
+			domainUsers[i] = api.DomainUsers{
+				Sid:      user.ObjectSid,
+				Username: user.SAMAccountName,
+				Name:     user.CN,
+				Groups:   grps,
+			}
+			// fmt.Println(user)
+		}
+		err = gg.RunDeleteDomainUsers()
+		if err != nil {
+			panic(err)
+		}
+		err = gg.RunInsetDomainUsers(domainUsers)
+		if err != nil {
+			panic(err)
+		}
+	*/
 
 	args := os.Args[1:]
 	var paths []string
@@ -392,8 +282,10 @@ func main() {
 			fmt.Printf("%6d| %v\n", nf.FileID, nf.Filename)
 		}
 		srvState.Update(rslt)
-		time.Sleep(time.Second * 1)
-		return
+		fmt.Fprintf(os.Stderr, "Finished epoch: %v\n", epoch)
+		time.Sleep(time.Second * 10)
+
+		// return
 	}
 
 }

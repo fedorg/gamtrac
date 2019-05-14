@@ -67,6 +67,37 @@ func (gg *GamtracGql) RunFetchFiles(rev int) ([]Files, error) {
 	return respData.Files, nil
 }
 
+func (gg *GamtracGql) RunUpsertFiles(files []Files) ([]Files, error) {
+	var respData struct {
+		InsertFiles struct {
+			Files []Files `json:"returning"`
+		} `json:"insert_files"`
+	}
+
+	query := `
+	mutation ($files: [files_insert_input!]!) {
+		insert_files(objects: $files,
+		  on_conflict: {
+			constraint: files_filename_key,
+			update_columns: [revision_id, data]
+		  }
+		)
+		{
+		  returning {
+			file_id
+		  }
+		}
+	  }
+	`
+	vars := map[string]interface{}{
+		"files": files,
+	}
+	if err := gg.Run(query, &respData, vars); err != nil {
+		return nil, err
+	}
+	return respData.InsertFiles.Files, nil
+}
+
 func (gg *GamtracGql) RunInsertFiles(files []Files) ([]Files, error) {
 	var respData struct {
 		InsertFiles struct {
