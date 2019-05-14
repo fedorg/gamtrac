@@ -87,7 +87,7 @@ func (gg *GamtracGql) RunUpsertFiles(files []Files) ([]Files, error) {
 			file_id
 		  }
 		}
-	  }
+	}
 	`
 	vars := map[string]interface{}{
 		"files": files,
@@ -127,13 +127,17 @@ func (gg *GamtracGql) RunDeleteFiles(currentRevision int) ([]Files, error) {
 	var respData struct {
 		DeleteFiles struct {
 			Files []Files `json:"returning"`
-		} `json:"delete_files"`
+		} `json:"update_files"`
 	}
 
 	query := `
 	mutation ($cur_rev: Int) {
-		delete_files(where: {revision_id: {_lt: $cur_rev}}) {
+		update_files(
+			where: {revision_id: {_lt: $cur_rev}},
+			_set: {filename: null}
+			) {
 			returning {
+				filename
 				file_id
 				revision_id
 			}
