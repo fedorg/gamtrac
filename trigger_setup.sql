@@ -5,6 +5,7 @@
 -- alter sequence files_file_id_seq restart;
 -- alter sequence revisions_revision_id_seq restart;
 
+-- alter table file_history add constraint file_history_filename_revision_id_unique unique (filename, revision_id);
 
 
 drop table file_history;
