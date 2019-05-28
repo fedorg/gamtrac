@@ -1,0 +1,9 @@
+- args:
+    sql: CREATE TABLE "public"."rules"("rule_id" serial NOT NULL, "rule" text NOT
+      NULL, "principal" int4 , "priority" integer NOT NULL, PRIMARY KEY ("rule_id")
+      , UNIQUE ("rule_id"), UNIQUE ("principal", "priority"));
+  type: run_sql
+- args:
+    name: rules
+    schema: public
+  type: add_existing_table_or_view
