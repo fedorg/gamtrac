@@ -10,8 +10,9 @@
             "request": "launch",
             "mode": "auto",
             "program": "${workspaceFolder}",
-            "envFile": "${workspaceFolder}/.env",
-            "args": ["C:\\Users\\fed00\\Downloads\\cemu_1.15.5","/home/user/Arduino/libraries", "H:/user/Arduino/libraries", "\\\\srv-rnd-spb\\rnddata\\ДАР\\ОБИ\\archive\\Raw Data Infinite (до 20.08.18)\\09_Infinite_protocols+results_для перекидывания и обработки\\Result\\ADAL"]
+            "envFile": "${workspaceFolder}/scanner.env",
+            // "args": ["C:\\Users\\fed00\\Desktop\\gamtrac\\gamtrac-front\\.next","/home/user/Arduino/libraries", "H:/user/Arduino/libraries", "\\\\srv-rnd-spb\\rnddata\\ДАР\\ОБИ\\archive\\Raw Data Infinite (до 20.08.18)\\09_Infinite_protocols+results_для перекидывания и обработки\\Result\\ADAL"]
+            "args": ["\\\\srv-rnd-spb\\rnddata\\ДАР\\ЛАМ\\Test\\New folder"]
         }
     ]
 }

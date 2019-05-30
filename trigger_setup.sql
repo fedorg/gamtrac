@@ -25,6 +25,8 @@ create table file_history (
 -- ASSUMPTION: no DELETEs
 
 
+-- This does not work with 'track this' option on hasura console.
+
 create or replace function trigger_on_files_changed() returns trigger
 as $$
 begin

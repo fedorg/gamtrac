@@ -1,0 +1,26 @@
+insert a tree widget that lists incomplete files
+add ignored file list
+
+front: view only relevant rules and their files
+front: view violating (unparsed) files
+try to make history snapshots easier and less triggery
+try to not actually delete file records
+implement rule editor
+add basic reporting and search
+implement per-user settings
+implement mounting dir for each user
+# compute differences before pushing to db
+
+
+
+back: create hasura ingress tables without any validation and trigger on these, don't write to output tables
+
+
+
+
+Use cases:
+ - detect incomplete bundles and unrelated files in the bundles as they appear
+ - find some files by tags that may have been deleted
+ - use links to find raw data used in a particular report
+ - get a time slice of related files
+ - find non-compliant files

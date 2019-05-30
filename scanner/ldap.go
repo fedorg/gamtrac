@@ -201,6 +201,13 @@ func FilterGroups(memberships [][]string, required []string) [][]string {
 	return ret
 }
 
+// func LdapSearchUsers(conn *ldap.Conn, searchDN string, filter string) ([], error) {
+// 	//the namespace objects are located in the container CN=Dfs-Configuration,CN=System,DC=domain,DC=fqdn, and are of the objectClass msDFS-Namespacev2
+// 	// (name=$_)
+// 	// LDAPFilter = '(&(objectClass=msDFS-Namespacev2){0})' -f $NamespaceClause
+//     // SearchBase = 'CN=Dfs-Configuration,{0}' -f $SystemDN
+// }
+
 func LdapSearchUsers(conn *ldap.Conn, searchDN string, filter string) ([]LdapUserInfo, error) {
 	if filter == "" {
 		filter = "(&(objectCategory=person)(objectClass=user)(SamAccountName=*))"
