@@ -1,0 +1,83 @@
+version: '3.6'
+
+networks:
+    reverseproxy:
+        external: true
+        name: reverseproxy
+    internal:
+        driver: bridge
+        external: false
+
+volumes:
+  db_data:
+
+services:
+  postgres:
+    image: postgres
+    restart: always
+    volumes:
+    - db_data:/var/lib/postgresql/data
+    networks:
+    - internal
+  pgadmin:
+    image: dpage/pgadmin4
+    restart: always
+    depends_on:
+    - postgres
+    networks:
+    - internal
+    - reverseproxy
+    labels:
+    - 'traefik.enable=true'
+    - 'traefik.port=80'
+    - 'traefik.backend=gamtrac-pgadmin'
+    - 'traefik.frontend.rule=Host:pgadmin.gamtrac.cndb.biocad.ru,localhost'
+    - 'traefik.docker.network=reverseproxy'
+    ## you can change pgAdmin default username/password with below environment variables
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@cndb.biocad.ru
+      PGADMIN_DEFAULT_PASSWORD: maga2018
+  graphql-engine:
+    image: hasura/graphql-engine:v1.0.0-beta.2
+    networks:
+    - internal
+    - reverseproxy
+    labels:
+    - 'traefik.enable=true'
+    - 'traefik.port=8080'
+    - 'traefik.backend=gamtrac-hasura'
+    - 'traefik.frontend.rule=Host:hge.gamtrac.cndb.biocad.ru,localhost'
+    - 'traefik.docker.network=reverseproxy'
+    depends_on:
+    - "postgres"
+    restart: always
+    environment:
+      HASURA_GRAPHQL_ENABLE_TELEMETRY: "false"
+      HASURA_GRAPHQL_DATABASE_URL: postgres://postgres:@postgres:5432/postgres
+      # set to "false" to disable console
+      HASURA_GRAPHQL_ENABLE_CONSOLE: "false"
+      # uncomment next line to set an admin secret
+      # HASURA_GRAPHQL_ADMIN_SECRET: myadminsecretkey
+  nodesrv:
+    image: halverneus/static-file-server
+    volumes:
+    - ./front/out:/web
+    networks:
+    - reverseproxy
+    labels:
+    - 'traefik.enable=true'
+    - 'traefik.port=8080'
+    - 'traefik.backend=gamtrac-front'
+    - 'traefik.frontend.rule=Host:gamtrac.cndb.biocad.ru,localhost'
+    #- 'traefik.docker.network=reverseproxy'
+   scanner: 
+     image: alpine
+     privileged: true
+     volumes:
+     - ./gamtrac:/gamtrac
+     - ./testdata.csv:/testdata.csv
+     restart: always
+     env_file:
+     - scanner.env
+     command: ./gamtrac \\\\srv-rnd-spb.biocad.loc\\rnddata\\ДАР\\ЛАМ\\Test\\New\ Folder
+   
