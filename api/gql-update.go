@@ -214,3 +214,25 @@ func (gg *GamtracGql) RunDeleteDomainUsers() error {
 	vars := map[string]interface{}{}
 	return gg.Run(query, nil, vars)
 }
+
+func (gg *GamtracGql) RunFetchRules() ([]Rules, error) {
+	var respData struct {
+		Rules []Rules `json:"rules"`
+	}
+
+	query := `
+	query {
+		rules {
+			principal
+			priority
+			rule
+			rule_id
+			ignore
+		}
+	}
+	`
+	if err := gg.Run(query, &respData, nil); err != nil {
+		return nil, err
+	}
+	return respData.Rules, nil
+}

@@ -26,6 +26,7 @@ type FileError struct {
 
 type AnnotResult struct {
 	Path        string             `diff:"Path,identifier"`// required
+	MountDir    string             `diff:"-" json:"-"`
 	Size        int64              `diff:"Size"`// required
 	Mode        os.FileMode        `diff:"Mode"`// required
 	ModTime     time.Time          `diff:"ModTime"`// required
@@ -41,6 +42,7 @@ type AnnotResult struct {
 
 func NewAnnotResult(
 	Path string,
+	MountDir string,
 	Size int64,
 	Mode os.FileMode,
 	ModTime time.Time,
@@ -55,6 +57,7 @@ func NewAnnotResult(
 ) AnnotResult {
 	return AnnotResult{
 		Path:        Path,
+		MountDir: MountDir,
 		Size:        Size,
 		Mode:        Mode,
 		ModTime:     ModTime,
