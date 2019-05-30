@@ -1,0 +1,28 @@
+- args:
+    cascade: false
+    sql: "-- ASSUMPTION: filename is globally unique and we don't know about file_id\r\n--
+      ASSUMPTION: no renames\r\n-- ASSUMPTION: no DELETEs\r\n\r\n\r\ncreate or replace
+      function trigger_on_files_changed() returns trigger\r\nas $$\r\nbegin\r\n    --
+      IF (TG_OP = 'DELETE') THEN\r\n    --     RAISE EXCEPTION 'Can only delete rows
+      by setting filename = NULL';\r\n    IF (TG_OP = 'INSERT') THEN\r\n        INSERT
+      INTO file_history (action, filename, revision_id, \"data\")\r\n         VALUES
+      ('I', NEW.filename, NEW.revision_id, NEW.data);\r\n    ELSIF (TG_OP = 'UPDATE')
+      THEN\r\n        IF NEW.filename is NULL THEN  -- delete records by setting filename
+      to NULL\r\n            INSERT INTO file_history (action, filename, revision_id,
+      \"data\")\r\n                VALUES ('D', OLD.filename, NEW.revision_id, OLD.data);\r\n
+      \           DELETE FROM files where (file_id = NEW.file_id);\r\n            RETURN
+      NEW; -- might cause problems\r\n        ELSIF NEW.filename <> OLD.filename THEN\r\n
+      \           RAISE EXCEPTION 'Cannot change filename, you should delete the file
+      and create a new one with a different name.';\r\n        ELSIF NEW.file_id <>
+      OLD.file_id THEN\r\n            RAISE EXCEPTION 'Cannot change file_id, you
+      should delete the file and create a new one with a different name.';\r\n        END
+      IF;\r\n        IF (to_jsonb(OLD.data) - 'QueuedAt' - 'ProcessedAt' - 'Errors')
+      <> (to_jsonb(NEW.data) - 'QueuedAt' - 'ProcessedAt' - 'Errors') THEN\r\n            INSERT
+      INTO file_history (action, filename, revision_id, \"data\")\r\n             VALUES
+      ('U', OLD.filename, NEW.revision_id, OLD.data);\r\n        ELSIF NEW.revision_id
+      <> OLD.revision_id THEN\r\n            RETURN NULL;\r\n        END IF;\r\n    END
+      IF;\r\n    RETURN NEW;\r\nend;\r\n$$ LANGUAGE 'plpgsql';\r\n\r\n\r\nDROP TRIGGER
+      IF EXISTS trigger_files_changed ON files;\r\ncreate trigger trigger_files_changed\r\nAFTER
+      UPDATE OR INSERT on files -- ignores return value\r\nfor each row\r\nexecute
+      procedure trigger_on_files_changed();"
+  type: run_sql

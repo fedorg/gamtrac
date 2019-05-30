@@ -1,0 +1,3 @@
+- args:
+    sql: alter table "public"."file_history" drop constraint "file_history_filename_revision_id_unique";
+  type: run_sql

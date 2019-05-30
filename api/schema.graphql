@@ -21,6 +21,21 @@ input bigint_comparison_exp {
   _nin: [bigint]
 }
 
+"""
+expression to compare columns of type boolean. All fields are combined with logical 'AND'.
+"""
+input boolean_comparison_exp {
+  _eq: Boolean
+  _gt: Boolean
+  _gte: Boolean
+  _in: [Boolean]
+  _is_null: Boolean
+  _lt: Boolean
+  _lte: Boolean
+  _neq: Boolean
+  _nin: [Boolean]
+}
+
 """conflict action"""
 enum conflict_action {
   """ignore the insert on this row"""
@@ -367,9 +382,6 @@ input file_history_bool_exp {
 unique or primary key constraints on table "file_history"
 """
 enum file_history_constraint {
-  """unique or primary key constraint"""
-  file_history_filename_revision_id_unique
-
   """unique or primary key constraint"""
   file_history_pkey
 }
@@ -1964,6 +1976,7 @@ input revisions_variance_order_by {
 columns and relationships of "rules"
 """
 type rules {
+  ignore: Boolean!
   principal: Int
   priority: Int!
   rule: String!
@@ -2043,6 +2056,7 @@ input rules_bool_exp {
   _and: [rules_bool_exp]
   _not: rules_bool_exp
   _or: [rules_bool_exp]
+  ignore: boolean_comparison_exp
   principal: integer_comparison_exp
   priority: integer_comparison_exp
   rule: text_comparison_exp
@@ -2057,7 +2071,10 @@ enum rules_constraint {
   rules_pkey
 
   """unique or primary key constraint"""
-  rules_principal_priority_key
+  rules_principal_priority_ignore_key
+
+  """unique or primary key constraint"""
+  rules_principal_rule_ignore_key
 }
 
 """
@@ -2073,6 +2090,7 @@ input rules_inc_input {
 input type for inserting data into table "rules"
 """
 input rules_insert_input {
+  ignore: Boolean
   principal: Int
   priority: Int
   rule: String
@@ -2146,6 +2164,7 @@ input rules_on_conflict {
 ordering options when selecting data from "rules"
 """
 input rules_order_by {
+  ignore: order_by
   principal: order_by
   priority: order_by
   rule: order_by
@@ -2156,6 +2175,9 @@ input rules_order_by {
 select columns of table "rules"
 """
 enum rules_select_column {
+  """column name"""
+  ignore
+
   """column name"""
   principal
 
@@ -2173,6 +2195,7 @@ enum rules_select_column {
 input type for updating data in table "rules"
 """
 input rules_set_input {
+  ignore: Boolean
   principal: Int
   priority: Int
   rule: String
@@ -2247,6 +2270,9 @@ input rules_sum_order_by {
 update columns of table "rules"
 """
 enum rules_update_column {
+  """column name"""
+  ignore
+
   """column name"""
   principal
 

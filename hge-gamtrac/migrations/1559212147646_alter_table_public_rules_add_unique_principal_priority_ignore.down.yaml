@@ -1,0 +1,7 @@
+- args:
+    sql: alter table "public"."rules" drop constraint "rules_principal_priority_ignore_key";
+  type: run_sql
+- args:
+    sql: alter table "public"."rules" add constraint "rules_principal_priority_key"
+      unique ("principal", "priority");
+  type: run_sql

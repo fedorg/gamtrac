@@ -3,37 +3,729 @@
 package api
 
 import (
-	"time"
+	"fmt"
+	"io"
+	"strconv"
 )
 
+// expression to compare columns of type bigint. All fields are combined with logical 'AND'.
+type BigintComparisonExp struct {
+	_eq     *string   `json:"_eq"`
+	_gt     *string   `json:"_gt"`
+	_gte    *string   `json:"_gte"`
+	_in     []*string `json:"_in"`
+	_isNull *bool     `json:"_is_null"`
+	_lt     *string   `json:"_lt"`
+	_lte    *string   `json:"_lte"`
+	_neq    *string   `json:"_neq"`
+	_nin    []*string `json:"_nin"`
+}
+
+// expression to compare columns of type boolean. All fields are combined with logical 'AND'.
+type BooleanComparisonExp struct {
+	_eq     *bool   `json:"_eq"`
+	_gt     *bool   `json:"_gt"`
+	_gte    *bool   `json:"_gte"`
+	_in     []*bool `json:"_in"`
+	_isNull *bool   `json:"_is_null"`
+	_lt     *bool   `json:"_lt"`
+	_lte    *bool   `json:"_lte"`
+	_neq    *bool   `json:"_neq"`
+	_nin    []*bool `json:"_nin"`
+}
+
+// columns and relationships of "domain_users"
 type DomainUsers struct {
-	Sid      string     `json:"sid"`
-	Username string     `json:"username"`
-	Name     string     `json:"name"`
-	Groups   [][]string `json:"groups"`
+	Groups   string `json:"groups"`
+	Name     string `json:"name"`
+	Sid      string `json:"sid"`
+	Username string `json:"username"`
 }
 
+// aggregated selection of "domain_users"
+type DomainUsersAggregate struct {
+	Aggregate *DomainUsersAggregateFields `json:"aggregate"`
+	Nodes     []DomainUsers               `json:"nodes"`
+}
+
+// aggregate fields of "domain_users"
+type DomainUsersAggregateFields struct {
+	Count *int                  `json:"count"`
+	Max   *DomainUsersMaxFields `json:"max"`
+	Min   *DomainUsersMinFields `json:"min"`
+}
+
+// order by aggregate values of table "domain_users"
+type DomainUsersAggregateOrderBy struct {
+	Count *OrderBy               `json:"count"`
+	Max   *DomainUsersMaxOrderBy `json:"max"`
+	Min   *DomainUsersMinOrderBy `json:"min"`
+}
+
+// append existing jsonb value of filtered columns with new jsonb value
+type DomainUsersAppendInput struct {
+	Groups *string `json:"groups"`
+}
+
+// input type for inserting array relation for remote table "domain_users"
+type DomainUsersArrRelInsertInput struct {
+	Data       []DomainUsersInsertInput `json:"data"`
+	OnConflict *DomainUsersOnConflict   `json:"on_conflict"`
+}
+
+// Boolean expression to filter rows from the table "domain_users". All fields are combined with a logical 'AND'.
+type DomainUsersBoolExp struct {
+	_and     []*DomainUsersBoolExp `json:"_and"`
+	_not     *DomainUsersBoolExp   `json:"_not"`
+	_or      []*DomainUsersBoolExp `json:"_or"`
+	Groups   *JsonbComparisonExp   `json:"groups"`
+	Name     *TextComparisonExp    `json:"name"`
+	Sid      *TextComparisonExp    `json:"sid"`
+	Username *TextComparisonExp    `json:"username"`
+}
+
+// delete the field or element with specified path (for JSON arrays, negative integers count from the end)
+type DomainUsersDeleteAtPathInput struct {
+	Groups []*string `json:"groups"`
+}
+
+// delete the array element with specified index (negative integers count from the
+// end). throws an error if top level container is not an array
+type DomainUsersDeleteElemInput struct {
+	Groups *int `json:"groups"`
+}
+
+// delete key/value pair or string element. key/value pairs are matched based on their key value
+type DomainUsersDeleteKeyInput struct {
+	Groups *string `json:"groups"`
+}
+
+// input type for inserting data into table "domain_users"
+type DomainUsersInsertInput struct {
+	Groups   *string `json:"groups"`
+	Name     *string `json:"name"`
+	Sid      *string `json:"sid"`
+	Username *string `json:"username"`
+}
+
+// aggregate max on columns
+type DomainUsersMaxFields struct {
+	Name     *string `json:"name"`
+	Sid      *string `json:"sid"`
+	Username *string `json:"username"`
+}
+
+// order by max() on columns of table "domain_users"
+type DomainUsersMaxOrderBy struct {
+	Name     *OrderBy `json:"name"`
+	Sid      *OrderBy `json:"sid"`
+	Username *OrderBy `json:"username"`
+}
+
+// aggregate min on columns
+type DomainUsersMinFields struct {
+	Name     *string `json:"name"`
+	Sid      *string `json:"sid"`
+	Username *string `json:"username"`
+}
+
+// order by min() on columns of table "domain_users"
+type DomainUsersMinOrderBy struct {
+	Name     *OrderBy `json:"name"`
+	Sid      *OrderBy `json:"sid"`
+	Username *OrderBy `json:"username"`
+}
+
+// response of any mutation on the table "domain_users"
+type DomainUsersMutationResponse struct {
+	// number of affected rows by the mutation
+	AffectedRows int `json:"affected_rows"`
+	// data of the affected rows by the mutation
+	Returning []DomainUsers `json:"returning"`
+}
+
+// input type for inserting object relation for remote table "domain_users"
+type DomainUsersObjRelInsertInput struct {
+	Data       DomainUsersInsertInput `json:"data"`
+	OnConflict *DomainUsersOnConflict `json:"on_conflict"`
+}
+
+// on conflict condition type for table "domain_users"
+type DomainUsersOnConflict struct {
+	Constraint    DomainUsersConstraint     `json:"constraint"`
+	UpdateColumns []DomainUsersUpdateColumn `json:"update_columns"`
+}
+
+// ordering options when selecting data from "domain_users"
+type DomainUsersOrderBy struct {
+	Groups   *OrderBy `json:"groups"`
+	Name     *OrderBy `json:"name"`
+	Sid      *OrderBy `json:"sid"`
+	Username *OrderBy `json:"username"`
+}
+
+// prepend existing jsonb value of filtered columns with new jsonb value
+type DomainUsersPrependInput struct {
+	Groups *string `json:"groups"`
+}
+
+// input type for updating data in table "domain_users"
+type DomainUsersSetInput struct {
+	Groups   *string `json:"groups"`
+	Name     *string `json:"name"`
+	Sid      *string `json:"sid"`
+	Username *string `json:"username"`
+}
+
+// columns and relationships of "file_history"
+type FileHistory struct {
+	Action       string  `json:"action"`
+	ActionTstamp string  `json:"action_tstamp"`
+	Data         *string `json:"data"`
+	// An object relationship
+	File          *Files `json:"file"`
+	FileHistoryID string `json:"file_history_id"`
+	Filename      string `json:"filename"`
+	// An object relationship
+	Revision   *Revisions `json:"revision"`
+	RevisionID *int       `json:"revision_id"`
+}
+
+// aggregated selection of "file_history"
+type FileHistoryAggregate struct {
+	Aggregate *FileHistoryAggregateFields `json:"aggregate"`
+	Nodes     []FileHistory               `json:"nodes"`
+}
+
+// aggregate fields of "file_history"
+type FileHistoryAggregateFields struct {
+	Avg        *FileHistoryAvgFields        `json:"avg"`
+	Count      *int                         `json:"count"`
+	Max        *FileHistoryMaxFields        `json:"max"`
+	Min        *FileHistoryMinFields        `json:"min"`
+	Stddev     *FileHistoryStddevFields     `json:"stddev"`
+	StddevPop  *FileHistoryStddevPopFields  `json:"stddev_pop"`
+	StddevSamp *FileHistoryStddevSampFields `json:"stddev_samp"`
+	Sum        *FileHistorySumFields        `json:"sum"`
+	VarPop     *FileHistoryVarPopFields     `json:"var_pop"`
+	VarSamp    *FileHistoryVarSampFields    `json:"var_samp"`
+	Variance   *FileHistoryVarianceFields   `json:"variance"`
+}
+
+// order by aggregate values of table "file_history"
+type FileHistoryAggregateOrderBy struct {
+	Avg        *FileHistoryAvgOrderBy        `json:"avg"`
+	Count      *OrderBy                      `json:"count"`
+	Max        *FileHistoryMaxOrderBy        `json:"max"`
+	Min        *FileHistoryMinOrderBy        `json:"min"`
+	Stddev     *FileHistoryStddevOrderBy     `json:"stddev"`
+	StddevPop  *FileHistoryStddevPopOrderBy  `json:"stddev_pop"`
+	StddevSamp *FileHistoryStddevSampOrderBy `json:"stddev_samp"`
+	Sum        *FileHistorySumOrderBy        `json:"sum"`
+	VarPop     *FileHistoryVarPopOrderBy     `json:"var_pop"`
+	VarSamp    *FileHistoryVarSampOrderBy    `json:"var_samp"`
+	Variance   *FileHistoryVarianceOrderBy   `json:"variance"`
+}
+
+// append existing jsonb value of filtered columns with new jsonb value
+type FileHistoryAppendInput struct {
+	Data *string `json:"data"`
+}
+
+// input type for inserting array relation for remote table "file_history"
+type FileHistoryArrRelInsertInput struct {
+	Data       []FileHistoryInsertInput `json:"data"`
+	OnConflict *FileHistoryOnConflict   `json:"on_conflict"`
+}
+
+// aggregate avg on columns
+type FileHistoryAvgFields struct {
+	FileHistoryID *float64 `json:"file_history_id"`
+	RevisionID    *float64 `json:"revision_id"`
+}
+
+// order by avg() on columns of table "file_history"
+type FileHistoryAvgOrderBy struct {
+	FileHistoryID *OrderBy `json:"file_history_id"`
+	RevisionID    *OrderBy `json:"revision_id"`
+}
+
+// Boolean expression to filter rows from the table "file_history". All fields are combined with a logical 'AND'.
+type FileHistoryBoolExp struct {
+	_and          []*FileHistoryBoolExp     `json:"_and"`
+	_not          *FileHistoryBoolExp       `json:"_not"`
+	_or           []*FileHistoryBoolExp     `json:"_or"`
+	Action        *TextComparisonExp        `json:"action"`
+	ActionTstamp  *TimestamptzComparisonExp `json:"action_tstamp"`
+	Data          *JsonbComparisonExp       `json:"data"`
+	File          *FilesBoolExp             `json:"file"`
+	FileHistoryID *BigintComparisonExp      `json:"file_history_id"`
+	Filename      *TextComparisonExp        `json:"filename"`
+	Revision      *RevisionsBoolExp         `json:"revision"`
+	RevisionID    *IntegerComparisonExp     `json:"revision_id"`
+}
+
+// delete the field or element with specified path (for JSON arrays, negative integers count from the end)
+type FileHistoryDeleteAtPathInput struct {
+	Data []*string `json:"data"`
+}
+
+// delete the array element with specified index (negative integers count from the
+// end). throws an error if top level container is not an array
+type FileHistoryDeleteElemInput struct {
+	Data *int `json:"data"`
+}
+
+// delete key/value pair or string element. key/value pairs are matched based on their key value
+type FileHistoryDeleteKeyInput struct {
+	Data *string `json:"data"`
+}
+
+// input type for incrementing integer columne in table "file_history"
+type FileHistoryIncInput struct {
+	FileHistoryID *string `json:"file_history_id"`
+	RevisionID    *int    `json:"revision_id"`
+}
+
+// input type for inserting data into table "file_history"
+type FileHistoryInsertInput struct {
+	Action        *string                     `json:"action"`
+	ActionTstamp  *string                     `json:"action_tstamp"`
+	Data          *string                     `json:"data"`
+	File          *FilesObjRelInsertInput     `json:"file"`
+	FileHistoryID *string                     `json:"file_history_id"`
+	Filename      *string                     `json:"filename"`
+	Revision      *RevisionsObjRelInsertInput `json:"revision"`
+	RevisionID    *int                        `json:"revision_id"`
+}
+
+// aggregate max on columns
+type FileHistoryMaxFields struct {
+	Action        *string `json:"action"`
+	ActionTstamp  *string `json:"action_tstamp"`
+	FileHistoryID *string `json:"file_history_id"`
+	Filename      *string `json:"filename"`
+	RevisionID    *int    `json:"revision_id"`
+}
+
+// order by max() on columns of table "file_history"
+type FileHistoryMaxOrderBy struct {
+	Action        *OrderBy `json:"action"`
+	ActionTstamp  *OrderBy `json:"action_tstamp"`
+	FileHistoryID *OrderBy `json:"file_history_id"`
+	Filename      *OrderBy `json:"filename"`
+	RevisionID    *OrderBy `json:"revision_id"`
+}
+
+// aggregate min on columns
+type FileHistoryMinFields struct {
+	Action        *string `json:"action"`
+	ActionTstamp  *string `json:"action_tstamp"`
+	FileHistoryID *string `json:"file_history_id"`
+	Filename      *string `json:"filename"`
+	RevisionID    *int    `json:"revision_id"`
+}
+
+// order by min() on columns of table "file_history"
+type FileHistoryMinOrderBy struct {
+	Action        *OrderBy `json:"action"`
+	ActionTstamp  *OrderBy `json:"action_tstamp"`
+	FileHistoryID *OrderBy `json:"file_history_id"`
+	Filename      *OrderBy `json:"filename"`
+	RevisionID    *OrderBy `json:"revision_id"`
+}
+
+// response of any mutation on the table "file_history"
+type FileHistoryMutationResponse struct {
+	// number of affected rows by the mutation
+	AffectedRows int `json:"affected_rows"`
+	// data of the affected rows by the mutation
+	Returning []FileHistory `json:"returning"`
+}
+
+// input type for inserting object relation for remote table "file_history"
+type FileHistoryObjRelInsertInput struct {
+	Data       FileHistoryInsertInput `json:"data"`
+	OnConflict *FileHistoryOnConflict `json:"on_conflict"`
+}
+
+// on conflict condition type for table "file_history"
+type FileHistoryOnConflict struct {
+	Constraint    FileHistoryConstraint     `json:"constraint"`
+	UpdateColumns []FileHistoryUpdateColumn `json:"update_columns"`
+}
+
+// ordering options when selecting data from "file_history"
+type FileHistoryOrderBy struct {
+	Action        *OrderBy          `json:"action"`
+	ActionTstamp  *OrderBy          `json:"action_tstamp"`
+	Data          *OrderBy          `json:"data"`
+	File          *FilesOrderBy     `json:"file"`
+	FileHistoryID *OrderBy          `json:"file_history_id"`
+	Filename      *OrderBy          `json:"filename"`
+	Revision      *RevisionsOrderBy `json:"revision"`
+	RevisionID    *OrderBy          `json:"revision_id"`
+}
+
+// prepend existing jsonb value of filtered columns with new jsonb value
+type FileHistoryPrependInput struct {
+	Data *string `json:"data"`
+}
+
+// input type for updating data in table "file_history"
+type FileHistorySetInput struct {
+	Action        *string `json:"action"`
+	ActionTstamp  *string `json:"action_tstamp"`
+	Data          *string `json:"data"`
+	FileHistoryID *string `json:"file_history_id"`
+	Filename      *string `json:"filename"`
+	RevisionID    *int    `json:"revision_id"`
+}
+
+// aggregate stddev on columns
+type FileHistoryStddevFields struct {
+	FileHistoryID *float64 `json:"file_history_id"`
+	RevisionID    *float64 `json:"revision_id"`
+}
+
+// order by stddev() on columns of table "file_history"
+type FileHistoryStddevOrderBy struct {
+	FileHistoryID *OrderBy `json:"file_history_id"`
+	RevisionID    *OrderBy `json:"revision_id"`
+}
+
+// aggregate stddev_pop on columns
+type FileHistoryStddevPopFields struct {
+	FileHistoryID *float64 `json:"file_history_id"`
+	RevisionID    *float64 `json:"revision_id"`
+}
+
+// order by stddev_pop() on columns of table "file_history"
+type FileHistoryStddevPopOrderBy struct {
+	FileHistoryID *OrderBy `json:"file_history_id"`
+	RevisionID    *OrderBy `json:"revision_id"`
+}
+
+// aggregate stddev_samp on columns
+type FileHistoryStddevSampFields struct {
+	FileHistoryID *float64 `json:"file_history_id"`
+	RevisionID    *float64 `json:"revision_id"`
+}
+
+// order by stddev_samp() on columns of table "file_history"
+type FileHistoryStddevSampOrderBy struct {
+	FileHistoryID *OrderBy `json:"file_history_id"`
+	RevisionID    *OrderBy `json:"revision_id"`
+}
+
+// aggregate sum on columns
+type FileHistorySumFields struct {
+	FileHistoryID *string `json:"file_history_id"`
+	RevisionID    *int    `json:"revision_id"`
+}
+
+// order by sum() on columns of table "file_history"
+type FileHistorySumOrderBy struct {
+	FileHistoryID *OrderBy `json:"file_history_id"`
+	RevisionID    *OrderBy `json:"revision_id"`
+}
+
+// aggregate var_pop on columns
+type FileHistoryVarPopFields struct {
+	FileHistoryID *float64 `json:"file_history_id"`
+	RevisionID    *float64 `json:"revision_id"`
+}
+
+// order by var_pop() on columns of table "file_history"
+type FileHistoryVarPopOrderBy struct {
+	FileHistoryID *OrderBy `json:"file_history_id"`
+	RevisionID    *OrderBy `json:"revision_id"`
+}
+
+// aggregate var_samp on columns
+type FileHistoryVarSampFields struct {
+	FileHistoryID *float64 `json:"file_history_id"`
+	RevisionID    *float64 `json:"revision_id"`
+}
+
+// order by var_samp() on columns of table "file_history"
+type FileHistoryVarSampOrderBy struct {
+	FileHistoryID *OrderBy `json:"file_history_id"`
+	RevisionID    *OrderBy `json:"revision_id"`
+}
+
+// aggregate variance on columns
+type FileHistoryVarianceFields struct {
+	FileHistoryID *float64 `json:"file_history_id"`
+	RevisionID    *float64 `json:"revision_id"`
+}
+
+// order by variance() on columns of table "file_history"
+type FileHistoryVarianceOrderBy struct {
+	FileHistoryID *OrderBy `json:"file_history_id"`
+	RevisionID    *OrderBy `json:"revision_id"`
+}
+
+// aggregated selection of "files"
+type FilesAggregate struct {
+	Aggregate *FilesAggregateFields `json:"aggregate"`
+	Nodes     []Files               `json:"nodes"`
+}
+
+// aggregate fields of "files"
+type FilesAggregateFields struct {
+	Avg        *FilesAvgFields        `json:"avg"`
+	Count      *int                   `json:"count"`
+	Max        *FilesMaxFields        `json:"max"`
+	Min        *FilesMinFields        `json:"min"`
+	Stddev     *FilesStddevFields     `json:"stddev"`
+	StddevPop  *FilesStddevPopFields  `json:"stddev_pop"`
+	StddevSamp *FilesStddevSampFields `json:"stddev_samp"`
+	Sum        *FilesSumFields        `json:"sum"`
+	VarPop     *FilesVarPopFields     `json:"var_pop"`
+	VarSamp    *FilesVarSampFields    `json:"var_samp"`
+	Variance   *FilesVarianceFields   `json:"variance"`
+}
+
+// order by aggregate values of table "files"
+type FilesAggregateOrderBy struct {
+	Avg        *FilesAvgOrderBy        `json:"avg"`
+	Count      *OrderBy                `json:"count"`
+	Max        *FilesMaxOrderBy        `json:"max"`
+	Min        *FilesMinOrderBy        `json:"min"`
+	Stddev     *FilesStddevOrderBy     `json:"stddev"`
+	StddevPop  *FilesStddevPopOrderBy  `json:"stddev_pop"`
+	StddevSamp *FilesStddevSampOrderBy `json:"stddev_samp"`
+	Sum        *FilesSumOrderBy        `json:"sum"`
+	VarPop     *FilesVarPopOrderBy     `json:"var_pop"`
+	VarSamp    *FilesVarSampOrderBy    `json:"var_samp"`
+	Variance   *FilesVarianceOrderBy   `json:"variance"`
+}
+
+// append existing jsonb value of filtered columns with new jsonb value
+type FilesAppendInput struct {
+	Data *string `json:"data"`
+}
+
+// input type for inserting array relation for remote table "files"
+type FilesArrRelInsertInput struct {
+	Data       []FilesInsertInput `json:"data"`
+	OnConflict *FilesOnConflict   `json:"on_conflict"`
+}
+
+// aggregate avg on columns
+type FilesAvgFields struct {
+	FileID     *float64 `json:"file_id"`
+	RevisionID *float64 `json:"revision_id"`
+}
+
+// order by avg() on columns of table "files"
+type FilesAvgOrderBy struct {
+	FileID     *OrderBy `json:"file_id"`
+	RevisionID *OrderBy `json:"revision_id"`
+}
+
+// Boolean expression to filter rows from the table "files". All fields are combined with a logical 'AND'.
 type FilesBoolExp struct {
-	_and       []*FilesBoolExp       `json:"_and"`
-	_not       *FilesBoolExp         `json:"_not"`
-	_or        []*FilesBoolExp       `json:"_or"`
-	FileID     *IntegerComparisonExp `json:"file_id"`
-	Filename   *TextComparisonExp    `json:"filename"`
-	RevisionID *IntegerComparisonExp `json:"revision_id"`
+	_and        []*FilesBoolExp       `json:"_and"`
+	_not        *FilesBoolExp         `json:"_not"`
+	_or         []*FilesBoolExp       `json:"_or"`
+	Data        *JsonbComparisonExp   `json:"data"`
+	FileHistory *FileHistoryBoolExp   `json:"file_history"`
+	FileID      *BigintComparisonExp  `json:"file_id"`
+	Filename    *TextComparisonExp    `json:"filename"`
+	Revision    *RevisionsBoolExp     `json:"revision"`
+	RevisionID  *IntegerComparisonExp `json:"revision_id"`
 }
 
+// delete the field or element with specified path (for JSON arrays, negative integers count from the end)
+type FilesDeleteAtPathInput struct {
+	Data []*string `json:"data"`
+}
+
+// delete the array element with specified index (negative integers count from the
+// end). throws an error if top level container is not an array
+type FilesDeleteElemInput struct {
+	Data *int `json:"data"`
+}
+
+// delete key/value pair or string element. key/value pairs are matched based on their key value
+type FilesDeleteKeyInput struct {
+	Data *string `json:"data"`
+}
+
+// input type for incrementing integer columne in table "files"
+type FilesIncInput struct {
+	FileID     *string `json:"file_id"`
+	RevisionID *int    `json:"revision_id"`
+}
+
+// input type for inserting data into table "files"
 type FilesInsertInput struct {
-	Data       *string `json:"data"`
-	FileID     *int    `json:"file_id"`
+	Data        *string                       `json:"data"`
+	FileHistory *FileHistoryArrRelInsertInput `json:"file_history"`
+	FileID      *string                       `json:"file_id"`
+	Filename    *string                       `json:"filename"`
+	Revision    *RevisionsObjRelInsertInput   `json:"revision"`
+	RevisionID  *int                          `json:"revision_id"`
+}
+
+// aggregate max on columns
+type FilesMaxFields struct {
+	FileID     *string `json:"file_id"`
 	Filename   *string `json:"filename"`
 	RevisionID *int    `json:"revision_id"`
 }
 
-type FilesMutationResponse struct {
-	AffectedRows int     `json:"affected_rows"`
-	Returning    []Files `json:"returning"`
+// order by max() on columns of table "files"
+type FilesMaxOrderBy struct {
+	FileID     *OrderBy `json:"file_id"`
+	Filename   *OrderBy `json:"filename"`
+	RevisionID *OrderBy `json:"revision_id"`
 }
 
+// aggregate min on columns
+type FilesMinFields struct {
+	FileID     *string `json:"file_id"`
+	Filename   *string `json:"filename"`
+	RevisionID *int    `json:"revision_id"`
+}
+
+// order by min() on columns of table "files"
+type FilesMinOrderBy struct {
+	FileID     *OrderBy `json:"file_id"`
+	Filename   *OrderBy `json:"filename"`
+	RevisionID *OrderBy `json:"revision_id"`
+}
+
+// response of any mutation on the table "files"
+type FilesMutationResponse struct {
+	// number of affected rows by the mutation
+	AffectedRows int `json:"affected_rows"`
+	// data of the affected rows by the mutation
+	Returning []Files `json:"returning"`
+}
+
+// input type for inserting object relation for remote table "files"
+type FilesObjRelInsertInput struct {
+	Data       FilesInsertInput `json:"data"`
+	OnConflict *FilesOnConflict `json:"on_conflict"`
+}
+
+// on conflict condition type for table "files"
+type FilesOnConflict struct {
+	Constraint    FilesConstraint     `json:"constraint"`
+	UpdateColumns []FilesUpdateColumn `json:"update_columns"`
+}
+
+// ordering options when selecting data from "files"
+type FilesOrderBy struct {
+	Data                 *OrderBy                     `json:"data"`
+	FileHistoryAggregate *FileHistoryAggregateOrderBy `json:"file_history_aggregate"`
+	FileID               *OrderBy                     `json:"file_id"`
+	Filename             *OrderBy                     `json:"filename"`
+	Revision             *RevisionsOrderBy            `json:"revision"`
+	RevisionID           *OrderBy                     `json:"revision_id"`
+}
+
+// prepend existing jsonb value of filtered columns with new jsonb value
+type FilesPrependInput struct {
+	Data *string `json:"data"`
+}
+
+// input type for updating data in table "files"
+type FilesSetInput struct {
+	Data       *string `json:"data"`
+	FileID     *string `json:"file_id"`
+	Filename   *string `json:"filename"`
+	RevisionID *int    `json:"revision_id"`
+}
+
+// aggregate stddev on columns
+type FilesStddevFields struct {
+	FileID     *float64 `json:"file_id"`
+	RevisionID *float64 `json:"revision_id"`
+}
+
+// order by stddev() on columns of table "files"
+type FilesStddevOrderBy struct {
+	FileID     *OrderBy `json:"file_id"`
+	RevisionID *OrderBy `json:"revision_id"`
+}
+
+// aggregate stddev_pop on columns
+type FilesStddevPopFields struct {
+	FileID     *float64 `json:"file_id"`
+	RevisionID *float64 `json:"revision_id"`
+}
+
+// order by stddev_pop() on columns of table "files"
+type FilesStddevPopOrderBy struct {
+	FileID     *OrderBy `json:"file_id"`
+	RevisionID *OrderBy `json:"revision_id"`
+}
+
+// aggregate stddev_samp on columns
+type FilesStddevSampFields struct {
+	FileID     *float64 `json:"file_id"`
+	RevisionID *float64 `json:"revision_id"`
+}
+
+// order by stddev_samp() on columns of table "files"
+type FilesStddevSampOrderBy struct {
+	FileID     *OrderBy `json:"file_id"`
+	RevisionID *OrderBy `json:"revision_id"`
+}
+
+// aggregate sum on columns
+type FilesSumFields struct {
+	FileID     *string `json:"file_id"`
+	RevisionID *int    `json:"revision_id"`
+}
+
+// order by sum() on columns of table "files"
+type FilesSumOrderBy struct {
+	FileID     *OrderBy `json:"file_id"`
+	RevisionID *OrderBy `json:"revision_id"`
+}
+
+// aggregate var_pop on columns
+type FilesVarPopFields struct {
+	FileID     *float64 `json:"file_id"`
+	RevisionID *float64 `json:"revision_id"`
+}
+
+// order by var_pop() on columns of table "files"
+type FilesVarPopOrderBy struct {
+	FileID     *OrderBy `json:"file_id"`
+	RevisionID *OrderBy `json:"revision_id"`
+}
+
+// aggregate var_samp on columns
+type FilesVarSampFields struct {
+	FileID     *float64 `json:"file_id"`
+	RevisionID *float64 `json:"revision_id"`
+}
+
+// order by var_samp() on columns of table "files"
+type FilesVarSampOrderBy struct {
+	FileID     *OrderBy `json:"file_id"`
+	RevisionID *OrderBy `json:"revision_id"`
+}
+
+// aggregate variance on columns
+type FilesVarianceFields struct {
+	FileID     *float64 `json:"file_id"`
+	RevisionID *float64 `json:"revision_id"`
+}
+
+// order by variance() on columns of table "files"
+type FilesVarianceOrderBy struct {
+	FileID     *OrderBy `json:"file_id"`
+	RevisionID *OrderBy `json:"revision_id"`
+}
+
+// expression to compare columns of type integer. All fields are combined with logical 'AND'.
 type IntegerComparisonExp struct {
 	_eq     *int   `json:"_eq"`
 	_gt     *int   `json:"_gt"`
@@ -46,12 +738,518 @@ type IntegerComparisonExp struct {
 	_nin    []*int `json:"_nin"`
 }
 
-type Revisions struct {
-	RevisionID int       `json:"revision_id"`
-	Started    time.Time `json:"started"`
-	Completed  time.Time `json:"completed"`
+// expression to compare columns of type jsonb. All fields are combined with logical 'AND'.
+type JsonbComparisonExp struct {
+	// is the column contained in the given json value
+	_containedIn *string `json:"_contained_in"`
+	// does the column contain the given json value at the top level
+	_contains *string `json:"_contains"`
+	_eq       *string `json:"_eq"`
+	_gt       *string `json:"_gt"`
+	_gte      *string `json:"_gte"`
+	// does the string exist as a top-level key in the column
+	_hasKey *string `json:"_has_key"`
+	// do all of these strings exist as top-level keys in the column
+	_hasKeysAll []string `json:"_has_keys_all"`
+	// do any of these strings exist as top-level keys in the column
+	_hasKeysAny []string  `json:"_has_keys_any"`
+	_in         []*string `json:"_in"`
+	_isNull     *bool     `json:"_is_null"`
+	_lt         *string   `json:"_lt"`
+	_lte        *string   `json:"_lte"`
+	_neq        *string   `json:"_neq"`
+	_nin        []*string `json:"_nin"`
 }
 
+// columns and relationships of "revisions"
+type Revisions struct {
+	Completed *string `json:"completed"`
+	// An array relationship
+	FileHistory []FileHistory `json:"file_history"`
+	// An aggregated array relationship
+	FileHistoryAggregate FileHistoryAggregate `json:"file_history_aggregate"`
+	// An array relationship
+	Files []Files `json:"files"`
+	// An aggregated array relationship
+	FilesAggregate FilesAggregate `json:"files_aggregate"`
+	RevisionID     int            `json:"revision_id"`
+	Started        string         `json:"started"`
+}
+
+// aggregated selection of "revisions"
+type RevisionsAggregate struct {
+	Aggregate *RevisionsAggregateFields `json:"aggregate"`
+	Nodes     []Revisions               `json:"nodes"`
+}
+
+// aggregate fields of "revisions"
+type RevisionsAggregateFields struct {
+	Avg        *RevisionsAvgFields        `json:"avg"`
+	Count      *int                       `json:"count"`
+	Max        *RevisionsMaxFields        `json:"max"`
+	Min        *RevisionsMinFields        `json:"min"`
+	Stddev     *RevisionsStddevFields     `json:"stddev"`
+	StddevPop  *RevisionsStddevPopFields  `json:"stddev_pop"`
+	StddevSamp *RevisionsStddevSampFields `json:"stddev_samp"`
+	Sum        *RevisionsSumFields        `json:"sum"`
+	VarPop     *RevisionsVarPopFields     `json:"var_pop"`
+	VarSamp    *RevisionsVarSampFields    `json:"var_samp"`
+	Variance   *RevisionsVarianceFields   `json:"variance"`
+}
+
+// order by aggregate values of table "revisions"
+type RevisionsAggregateOrderBy struct {
+	Avg        *RevisionsAvgOrderBy        `json:"avg"`
+	Count      *OrderBy                    `json:"count"`
+	Max        *RevisionsMaxOrderBy        `json:"max"`
+	Min        *RevisionsMinOrderBy        `json:"min"`
+	Stddev     *RevisionsStddevOrderBy     `json:"stddev"`
+	StddevPop  *RevisionsStddevPopOrderBy  `json:"stddev_pop"`
+	StddevSamp *RevisionsStddevSampOrderBy `json:"stddev_samp"`
+	Sum        *RevisionsSumOrderBy        `json:"sum"`
+	VarPop     *RevisionsVarPopOrderBy     `json:"var_pop"`
+	VarSamp    *RevisionsVarSampOrderBy    `json:"var_samp"`
+	Variance   *RevisionsVarianceOrderBy   `json:"variance"`
+}
+
+// input type for inserting array relation for remote table "revisions"
+type RevisionsArrRelInsertInput struct {
+	Data       []RevisionsInsertInput `json:"data"`
+	OnConflict *RevisionsOnConflict   `json:"on_conflict"`
+}
+
+// aggregate avg on columns
+type RevisionsAvgFields struct {
+	RevisionID *float64 `json:"revision_id"`
+}
+
+// order by avg() on columns of table "revisions"
+type RevisionsAvgOrderBy struct {
+	RevisionID *OrderBy `json:"revision_id"`
+}
+
+// Boolean expression to filter rows from the table "revisions". All fields are combined with a logical 'AND'.
+type RevisionsBoolExp struct {
+	_and        []*RevisionsBoolExp       `json:"_and"`
+	_not        *RevisionsBoolExp         `json:"_not"`
+	_or         []*RevisionsBoolExp       `json:"_or"`
+	Completed   *TimestamptzComparisonExp `json:"completed"`
+	FileHistory *FileHistoryBoolExp       `json:"file_history"`
+	Files       *FilesBoolExp             `json:"files"`
+	RevisionID  *IntegerComparisonExp     `json:"revision_id"`
+	Started     *TimestamptzComparisonExp `json:"started"`
+}
+
+// input type for incrementing integer columne in table "revisions"
+type RevisionsIncInput struct {
+	RevisionID *int `json:"revision_id"`
+}
+
+// input type for inserting data into table "revisions"
+type RevisionsInsertInput struct {
+	Completed   *string                       `json:"completed"`
+	FileHistory *FileHistoryArrRelInsertInput `json:"file_history"`
+	Files       *FilesArrRelInsertInput       `json:"files"`
+	RevisionID  *int                          `json:"revision_id"`
+	Started     *string                       `json:"started"`
+}
+
+// aggregate max on columns
+type RevisionsMaxFields struct {
+	Completed  *string `json:"completed"`
+	RevisionID *int    `json:"revision_id"`
+	Started    *string `json:"started"`
+}
+
+// order by max() on columns of table "revisions"
+type RevisionsMaxOrderBy struct {
+	Completed  *OrderBy `json:"completed"`
+	RevisionID *OrderBy `json:"revision_id"`
+	Started    *OrderBy `json:"started"`
+}
+
+// aggregate min on columns
+type RevisionsMinFields struct {
+	Completed  *string `json:"completed"`
+	RevisionID *int    `json:"revision_id"`
+	Started    *string `json:"started"`
+}
+
+// order by min() on columns of table "revisions"
+type RevisionsMinOrderBy struct {
+	Completed  *OrderBy `json:"completed"`
+	RevisionID *OrderBy `json:"revision_id"`
+	Started    *OrderBy `json:"started"`
+}
+
+// response of any mutation on the table "revisions"
+type RevisionsMutationResponse struct {
+	// number of affected rows by the mutation
+	AffectedRows int `json:"affected_rows"`
+	// data of the affected rows by the mutation
+	Returning []Revisions `json:"returning"`
+}
+
+// input type for inserting object relation for remote table "revisions"
+type RevisionsObjRelInsertInput struct {
+	Data       RevisionsInsertInput `json:"data"`
+	OnConflict *RevisionsOnConflict `json:"on_conflict"`
+}
+
+// on conflict condition type for table "revisions"
+type RevisionsOnConflict struct {
+	Constraint    RevisionsConstraint     `json:"constraint"`
+	UpdateColumns []RevisionsUpdateColumn `json:"update_columns"`
+}
+
+// ordering options when selecting data from "revisions"
+type RevisionsOrderBy struct {
+	Completed            *OrderBy                     `json:"completed"`
+	FileHistoryAggregate *FileHistoryAggregateOrderBy `json:"file_history_aggregate"`
+	FilesAggregate       *FilesAggregateOrderBy       `json:"files_aggregate"`
+	RevisionID           *OrderBy                     `json:"revision_id"`
+	Started              *OrderBy                     `json:"started"`
+}
+
+// input type for updating data in table "revisions"
+type RevisionsSetInput struct {
+	Completed  *string `json:"completed"`
+	RevisionID *int    `json:"revision_id"`
+	Started    *string `json:"started"`
+}
+
+// aggregate stddev on columns
+type RevisionsStddevFields struct {
+	RevisionID *float64 `json:"revision_id"`
+}
+
+// order by stddev() on columns of table "revisions"
+type RevisionsStddevOrderBy struct {
+	RevisionID *OrderBy `json:"revision_id"`
+}
+
+// aggregate stddev_pop on columns
+type RevisionsStddevPopFields struct {
+	RevisionID *float64 `json:"revision_id"`
+}
+
+// order by stddev_pop() on columns of table "revisions"
+type RevisionsStddevPopOrderBy struct {
+	RevisionID *OrderBy `json:"revision_id"`
+}
+
+// aggregate stddev_samp on columns
+type RevisionsStddevSampFields struct {
+	RevisionID *float64 `json:"revision_id"`
+}
+
+// order by stddev_samp() on columns of table "revisions"
+type RevisionsStddevSampOrderBy struct {
+	RevisionID *OrderBy `json:"revision_id"`
+}
+
+// aggregate sum on columns
+type RevisionsSumFields struct {
+	RevisionID *int `json:"revision_id"`
+}
+
+// order by sum() on columns of table "revisions"
+type RevisionsSumOrderBy struct {
+	RevisionID *OrderBy `json:"revision_id"`
+}
+
+// aggregate var_pop on columns
+type RevisionsVarPopFields struct {
+	RevisionID *float64 `json:"revision_id"`
+}
+
+// order by var_pop() on columns of table "revisions"
+type RevisionsVarPopOrderBy struct {
+	RevisionID *OrderBy `json:"revision_id"`
+}
+
+// aggregate var_samp on columns
+type RevisionsVarSampFields struct {
+	RevisionID *float64 `json:"revision_id"`
+}
+
+// order by var_samp() on columns of table "revisions"
+type RevisionsVarSampOrderBy struct {
+	RevisionID *OrderBy `json:"revision_id"`
+}
+
+// aggregate variance on columns
+type RevisionsVarianceFields struct {
+	RevisionID *float64 `json:"revision_id"`
+}
+
+// order by variance() on columns of table "revisions"
+type RevisionsVarianceOrderBy struct {
+	RevisionID *OrderBy `json:"revision_id"`
+}
+
+// columns and relationships of "rules"
+type Rules struct {
+	Ignore    bool   `json:"ignore"`
+	Principal *int   `json:"principal"`
+	Priority  int    `json:"priority"`
+	Rule      string `json:"rule"`
+	RuleID    int    `json:"rule_id"`
+}
+
+// aggregated selection of "rules"
+type RulesAggregate struct {
+	Aggregate *RulesAggregateFields `json:"aggregate"`
+	Nodes     []Rules               `json:"nodes"`
+}
+
+// aggregate fields of "rules"
+type RulesAggregateFields struct {
+	Avg        *RulesAvgFields        `json:"avg"`
+	Count      *int                   `json:"count"`
+	Max        *RulesMaxFields        `json:"max"`
+	Min        *RulesMinFields        `json:"min"`
+	Stddev     *RulesStddevFields     `json:"stddev"`
+	StddevPop  *RulesStddevPopFields  `json:"stddev_pop"`
+	StddevSamp *RulesStddevSampFields `json:"stddev_samp"`
+	Sum        *RulesSumFields        `json:"sum"`
+	VarPop     *RulesVarPopFields     `json:"var_pop"`
+	VarSamp    *RulesVarSampFields    `json:"var_samp"`
+	Variance   *RulesVarianceFields   `json:"variance"`
+}
+
+// order by aggregate values of table "rules"
+type RulesAggregateOrderBy struct {
+	Avg        *RulesAvgOrderBy        `json:"avg"`
+	Count      *OrderBy                `json:"count"`
+	Max        *RulesMaxOrderBy        `json:"max"`
+	Min        *RulesMinOrderBy        `json:"min"`
+	Stddev     *RulesStddevOrderBy     `json:"stddev"`
+	StddevPop  *RulesStddevPopOrderBy  `json:"stddev_pop"`
+	StddevSamp *RulesStddevSampOrderBy `json:"stddev_samp"`
+	Sum        *RulesSumOrderBy        `json:"sum"`
+	VarPop     *RulesVarPopOrderBy     `json:"var_pop"`
+	VarSamp    *RulesVarSampOrderBy    `json:"var_samp"`
+	Variance   *RulesVarianceOrderBy   `json:"variance"`
+}
+
+// input type for inserting array relation for remote table "rules"
+type RulesArrRelInsertInput struct {
+	Data       []RulesInsertInput `json:"data"`
+	OnConflict *RulesOnConflict   `json:"on_conflict"`
+}
+
+// aggregate avg on columns
+type RulesAvgFields struct {
+	Principal *float64 `json:"principal"`
+	Priority  *float64 `json:"priority"`
+	RuleID    *float64 `json:"rule_id"`
+}
+
+// order by avg() on columns of table "rules"
+type RulesAvgOrderBy struct {
+	Principal *OrderBy `json:"principal"`
+	Priority  *OrderBy `json:"priority"`
+	RuleID    *OrderBy `json:"rule_id"`
+}
+
+// Boolean expression to filter rows from the table "rules". All fields are combined with a logical 'AND'.
+type RulesBoolExp struct {
+	_and      []*RulesBoolExp       `json:"_and"`
+	_not      *RulesBoolExp         `json:"_not"`
+	_or       []*RulesBoolExp       `json:"_or"`
+	Ignore    *BooleanComparisonExp `json:"ignore"`
+	Principal *IntegerComparisonExp `json:"principal"`
+	Priority  *IntegerComparisonExp `json:"priority"`
+	Rule      *TextComparisonExp    `json:"rule"`
+	RuleID    *IntegerComparisonExp `json:"rule_id"`
+}
+
+// input type for incrementing integer columne in table "rules"
+type RulesIncInput struct {
+	Principal *int `json:"principal"`
+	Priority  *int `json:"priority"`
+	RuleID    *int `json:"rule_id"`
+}
+
+// input type for inserting data into table "rules"
+type RulesInsertInput struct {
+	Ignore    *bool   `json:"ignore"`
+	Principal *int    `json:"principal"`
+	Priority  *int    `json:"priority"`
+	Rule      *string `json:"rule"`
+	RuleID    *int    `json:"rule_id"`
+}
+
+// aggregate max on columns
+type RulesMaxFields struct {
+	Principal *int    `json:"principal"`
+	Priority  *int    `json:"priority"`
+	Rule      *string `json:"rule"`
+	RuleID    *int    `json:"rule_id"`
+}
+
+// order by max() on columns of table "rules"
+type RulesMaxOrderBy struct {
+	Principal *OrderBy `json:"principal"`
+	Priority  *OrderBy `json:"priority"`
+	Rule      *OrderBy `json:"rule"`
+	RuleID    *OrderBy `json:"rule_id"`
+}
+
+// aggregate min on columns
+type RulesMinFields struct {
+	Principal *int    `json:"principal"`
+	Priority  *int    `json:"priority"`
+	Rule      *string `json:"rule"`
+	RuleID    *int    `json:"rule_id"`
+}
+
+// order by min() on columns of table "rules"
+type RulesMinOrderBy struct {
+	Principal *OrderBy `json:"principal"`
+	Priority  *OrderBy `json:"priority"`
+	Rule      *OrderBy `json:"rule"`
+	RuleID    *OrderBy `json:"rule_id"`
+}
+
+// response of any mutation on the table "rules"
+type RulesMutationResponse struct {
+	// number of affected rows by the mutation
+	AffectedRows int `json:"affected_rows"`
+	// data of the affected rows by the mutation
+	Returning []Rules `json:"returning"`
+}
+
+// input type for inserting object relation for remote table "rules"
+type RulesObjRelInsertInput struct {
+	Data       RulesInsertInput `json:"data"`
+	OnConflict *RulesOnConflict `json:"on_conflict"`
+}
+
+// on conflict condition type for table "rules"
+type RulesOnConflict struct {
+	Constraint    RulesConstraint     `json:"constraint"`
+	UpdateColumns []RulesUpdateColumn `json:"update_columns"`
+}
+
+// ordering options when selecting data from "rules"
+type RulesOrderBy struct {
+	Ignore    *OrderBy `json:"ignore"`
+	Principal *OrderBy `json:"principal"`
+	Priority  *OrderBy `json:"priority"`
+	Rule      *OrderBy `json:"rule"`
+	RuleID    *OrderBy `json:"rule_id"`
+}
+
+// input type for updating data in table "rules"
+type RulesSetInput struct {
+	Ignore    *bool   `json:"ignore"`
+	Principal *int    `json:"principal"`
+	Priority  *int    `json:"priority"`
+	Rule      *string `json:"rule"`
+	RuleID    *int    `json:"rule_id"`
+}
+
+// aggregate stddev on columns
+type RulesStddevFields struct {
+	Principal *float64 `json:"principal"`
+	Priority  *float64 `json:"priority"`
+	RuleID    *float64 `json:"rule_id"`
+}
+
+// order by stddev() on columns of table "rules"
+type RulesStddevOrderBy struct {
+	Principal *OrderBy `json:"principal"`
+	Priority  *OrderBy `json:"priority"`
+	RuleID    *OrderBy `json:"rule_id"`
+}
+
+// aggregate stddev_pop on columns
+type RulesStddevPopFields struct {
+	Principal *float64 `json:"principal"`
+	Priority  *float64 `json:"priority"`
+	RuleID    *float64 `json:"rule_id"`
+}
+
+// order by stddev_pop() on columns of table "rules"
+type RulesStddevPopOrderBy struct {
+	Principal *OrderBy `json:"principal"`
+	Priority  *OrderBy `json:"priority"`
+	RuleID    *OrderBy `json:"rule_id"`
+}
+
+// aggregate stddev_samp on columns
+type RulesStddevSampFields struct {
+	Principal *float64 `json:"principal"`
+	Priority  *float64 `json:"priority"`
+	RuleID    *float64 `json:"rule_id"`
+}
+
+// order by stddev_samp() on columns of table "rules"
+type RulesStddevSampOrderBy struct {
+	Principal *OrderBy `json:"principal"`
+	Priority  *OrderBy `json:"priority"`
+	RuleID    *OrderBy `json:"rule_id"`
+}
+
+// aggregate sum on columns
+type RulesSumFields struct {
+	Principal *int `json:"principal"`
+	Priority  *int `json:"priority"`
+	RuleID    *int `json:"rule_id"`
+}
+
+// order by sum() on columns of table "rules"
+type RulesSumOrderBy struct {
+	Principal *OrderBy `json:"principal"`
+	Priority  *OrderBy `json:"priority"`
+	RuleID    *OrderBy `json:"rule_id"`
+}
+
+// aggregate var_pop on columns
+type RulesVarPopFields struct {
+	Principal *float64 `json:"principal"`
+	Priority  *float64 `json:"priority"`
+	RuleID    *float64 `json:"rule_id"`
+}
+
+// order by var_pop() on columns of table "rules"
+type RulesVarPopOrderBy struct {
+	Principal *OrderBy `json:"principal"`
+	Priority  *OrderBy `json:"priority"`
+	RuleID    *OrderBy `json:"rule_id"`
+}
+
+// aggregate var_samp on columns
+type RulesVarSampFields struct {
+	Principal *float64 `json:"principal"`
+	Priority  *float64 `json:"priority"`
+	RuleID    *float64 `json:"rule_id"`
+}
+
+// order by var_samp() on columns of table "rules"
+type RulesVarSampOrderBy struct {
+	Principal *OrderBy `json:"principal"`
+	Priority  *OrderBy `json:"priority"`
+	RuleID    *OrderBy `json:"rule_id"`
+}
+
+// aggregate variance on columns
+type RulesVarianceFields struct {
+	Principal *float64 `json:"principal"`
+	Priority  *float64 `json:"priority"`
+	RuleID    *float64 `json:"rule_id"`
+}
+
+// order by variance() on columns of table "rules"
+type RulesVarianceOrderBy struct {
+	Principal *OrderBy `json:"principal"`
+	Priority  *OrderBy `json:"priority"`
+	RuleID    *OrderBy `json:"rule_id"`
+}
+
+// expression to compare columns of type text. All fields are combined with logical 'AND'.
 type TextComparisonExp struct {
 	_eq       *string   `json:"_eq"`
 	_gt       *string   `json:"_gt"`
@@ -68,4 +1266,849 @@ type TextComparisonExp struct {
 	_nlike    *string   `json:"_nlike"`
 	_nsimilar *string   `json:"_nsimilar"`
 	_similar  *string   `json:"_similar"`
+}
+
+// expression to compare columns of type timestamptz. All fields are combined with logical 'AND'.
+type TimestamptzComparisonExp struct {
+	_eq     *string   `json:"_eq"`
+	_gt     *string   `json:"_gt"`
+	_gte    *string   `json:"_gte"`
+	_in     []*string `json:"_in"`
+	_isNull *bool     `json:"_is_null"`
+	_lt     *string   `json:"_lt"`
+	_lte    *string   `json:"_lte"`
+	_neq    *string   `json:"_neq"`
+	_nin    []*string `json:"_nin"`
+}
+
+// ConflictAction
+type ConflictAction string
+
+const (
+	// ignore the insert on this row
+	ConflictActionIgnore ConflictAction = "ignore"
+	// update the row with the given values
+	ConflictActionUpdate ConflictAction = "update"
+)
+
+var AllConflictAction = []ConflictAction{
+	ConflictActionIgnore,
+	ConflictActionUpdate,
+}
+
+func (e ConflictAction) IsValid() bool {
+	switch e {
+	case ConflictActionIgnore, ConflictActionUpdate:
+		return true
+	}
+	return false
+}
+
+func (e ConflictAction) String() string {
+	return string(e)
+}
+
+func (e *ConflictAction) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = ConflictAction(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid conflict_action", str)
+	}
+	return nil
+}
+
+func (e ConflictAction) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+// UniqueOrPrimaryKeyConstraintsOnTable"domainUsers"
+type DomainUsersConstraint string
+
+const (
+	// unique or primary key constraint
+	DomainUsersConstraintDomainUsersPkey DomainUsersConstraint = "domainUsers_pkey"
+	// unique or primary key constraint
+	DomainUsersConstraintDomainUsersUsernameKey DomainUsersConstraint = "domainUsers_username_key"
+)
+
+var AllDomainUsersConstraint = []DomainUsersConstraint{
+	DomainUsersConstraintDomainUsersPkey,
+	DomainUsersConstraintDomainUsersUsernameKey,
+}
+
+func (e DomainUsersConstraint) IsValid() bool {
+	switch e {
+	case DomainUsersConstraintDomainUsersPkey, DomainUsersConstraintDomainUsersUsernameKey:
+		return true
+	}
+	return false
+}
+
+func (e DomainUsersConstraint) String() string {
+	return string(e)
+}
+
+func (e *DomainUsersConstraint) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = DomainUsersConstraint(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid domain_users_constraint", str)
+	}
+	return nil
+}
+
+func (e DomainUsersConstraint) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+// SelectColumnsOfTable"domainUsers"
+type DomainUsersSelectColumn string
+
+const (
+	// column name
+	DomainUsersSelectColumnGroups DomainUsersSelectColumn = "groups"
+	// column name
+	DomainUsersSelectColumnName DomainUsersSelectColumn = "name"
+	// column name
+	DomainUsersSelectColumnSid DomainUsersSelectColumn = "sid"
+	// column name
+	DomainUsersSelectColumnUsername DomainUsersSelectColumn = "username"
+)
+
+var AllDomainUsersSelectColumn = []DomainUsersSelectColumn{
+	DomainUsersSelectColumnGroups,
+	DomainUsersSelectColumnName,
+	DomainUsersSelectColumnSid,
+	DomainUsersSelectColumnUsername,
+}
+
+func (e DomainUsersSelectColumn) IsValid() bool {
+	switch e {
+	case DomainUsersSelectColumnGroups, DomainUsersSelectColumnName, DomainUsersSelectColumnSid, DomainUsersSelectColumnUsername:
+		return true
+	}
+	return false
+}
+
+func (e DomainUsersSelectColumn) String() string {
+	return string(e)
+}
+
+func (e *DomainUsersSelectColumn) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = DomainUsersSelectColumn(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid domain_users_select_column", str)
+	}
+	return nil
+}
+
+func (e DomainUsersSelectColumn) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+// UpdateColumnsOfTable"domainUsers"
+type DomainUsersUpdateColumn string
+
+const (
+	// column name
+	DomainUsersUpdateColumnGroups DomainUsersUpdateColumn = "groups"
+	// column name
+	DomainUsersUpdateColumnName DomainUsersUpdateColumn = "name"
+	// column name
+	DomainUsersUpdateColumnSid DomainUsersUpdateColumn = "sid"
+	// column name
+	DomainUsersUpdateColumnUsername DomainUsersUpdateColumn = "username"
+)
+
+var AllDomainUsersUpdateColumn = []DomainUsersUpdateColumn{
+	DomainUsersUpdateColumnGroups,
+	DomainUsersUpdateColumnName,
+	DomainUsersUpdateColumnSid,
+	DomainUsersUpdateColumnUsername,
+}
+
+func (e DomainUsersUpdateColumn) IsValid() bool {
+	switch e {
+	case DomainUsersUpdateColumnGroups, DomainUsersUpdateColumnName, DomainUsersUpdateColumnSid, DomainUsersUpdateColumnUsername:
+		return true
+	}
+	return false
+}
+
+func (e DomainUsersUpdateColumn) String() string {
+	return string(e)
+}
+
+func (e *DomainUsersUpdateColumn) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = DomainUsersUpdateColumn(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid domain_users_update_column", str)
+	}
+	return nil
+}
+
+func (e DomainUsersUpdateColumn) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+// UniqueOrPrimaryKeyConstraintsOnTable"fileHistory"
+type FileHistoryConstraint string
+
+const (
+	// unique or primary key constraint
+	FileHistoryConstraintFileHistoryPkey FileHistoryConstraint = "file_history_pkey"
+)
+
+var AllFileHistoryConstraint = []FileHistoryConstraint{
+	FileHistoryConstraintFileHistoryPkey,
+}
+
+func (e FileHistoryConstraint) IsValid() bool {
+	switch e {
+	case FileHistoryConstraintFileHistoryPkey:
+		return true
+	}
+	return false
+}
+
+func (e FileHistoryConstraint) String() string {
+	return string(e)
+}
+
+func (e *FileHistoryConstraint) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = FileHistoryConstraint(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid file_history_constraint", str)
+	}
+	return nil
+}
+
+func (e FileHistoryConstraint) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+// SelectColumnsOfTable"fileHistory"
+type FileHistorySelectColumn string
+
+const (
+	// column name
+	FileHistorySelectColumnAction FileHistorySelectColumn = "action"
+	// column name
+	FileHistorySelectColumnActionTstamp FileHistorySelectColumn = "action_tstamp"
+	// column name
+	FileHistorySelectColumnData FileHistorySelectColumn = "data"
+	// column name
+	FileHistorySelectColumnFileHistoryID FileHistorySelectColumn = "file_history_id"
+	// column name
+	FileHistorySelectColumnFilename FileHistorySelectColumn = "filename"
+	// column name
+	FileHistorySelectColumnRevisionID FileHistorySelectColumn = "revision_id"
+)
+
+var AllFileHistorySelectColumn = []FileHistorySelectColumn{
+	FileHistorySelectColumnAction,
+	FileHistorySelectColumnActionTstamp,
+	FileHistorySelectColumnData,
+	FileHistorySelectColumnFileHistoryID,
+	FileHistorySelectColumnFilename,
+	FileHistorySelectColumnRevisionID,
+}
+
+func (e FileHistorySelectColumn) IsValid() bool {
+	switch e {
+	case FileHistorySelectColumnAction, FileHistorySelectColumnActionTstamp, FileHistorySelectColumnData, FileHistorySelectColumnFileHistoryID, FileHistorySelectColumnFilename, FileHistorySelectColumnRevisionID:
+		return true
+	}
+	return false
+}
+
+func (e FileHistorySelectColumn) String() string {
+	return string(e)
+}
+
+func (e *FileHistorySelectColumn) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = FileHistorySelectColumn(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid file_history_select_column", str)
+	}
+	return nil
+}
+
+func (e FileHistorySelectColumn) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+// UpdateColumnsOfTable"fileHistory"
+type FileHistoryUpdateColumn string
+
+const (
+	// column name
+	FileHistoryUpdateColumnAction FileHistoryUpdateColumn = "action"
+	// column name
+	FileHistoryUpdateColumnActionTstamp FileHistoryUpdateColumn = "action_tstamp"
+	// column name
+	FileHistoryUpdateColumnData FileHistoryUpdateColumn = "data"
+	// column name
+	FileHistoryUpdateColumnFileHistoryID FileHistoryUpdateColumn = "file_history_id"
+	// column name
+	FileHistoryUpdateColumnFilename FileHistoryUpdateColumn = "filename"
+	// column name
+	FileHistoryUpdateColumnRevisionID FileHistoryUpdateColumn = "revision_id"
+)
+
+var AllFileHistoryUpdateColumn = []FileHistoryUpdateColumn{
+	FileHistoryUpdateColumnAction,
+	FileHistoryUpdateColumnActionTstamp,
+	FileHistoryUpdateColumnData,
+	FileHistoryUpdateColumnFileHistoryID,
+	FileHistoryUpdateColumnFilename,
+	FileHistoryUpdateColumnRevisionID,
+}
+
+func (e FileHistoryUpdateColumn) IsValid() bool {
+	switch e {
+	case FileHistoryUpdateColumnAction, FileHistoryUpdateColumnActionTstamp, FileHistoryUpdateColumnData, FileHistoryUpdateColumnFileHistoryID, FileHistoryUpdateColumnFilename, FileHistoryUpdateColumnRevisionID:
+		return true
+	}
+	return false
+}
+
+func (e FileHistoryUpdateColumn) String() string {
+	return string(e)
+}
+
+func (e *FileHistoryUpdateColumn) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = FileHistoryUpdateColumn(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid file_history_update_column", str)
+	}
+	return nil
+}
+
+func (e FileHistoryUpdateColumn) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+// UniqueOrPrimaryKeyConstraintsOnTable"files"
+type FilesConstraint string
+
+const (
+	// unique or primary key constraint
+	FilesConstraintFilesFileIDKey FilesConstraint = "files_file_id_key"
+	// unique or primary key constraint
+	FilesConstraintFilesFilenameKey FilesConstraint = "files_filename_key"
+	// unique or primary key constraint
+	FilesConstraintFilesPkey FilesConstraint = "files_pkey"
+)
+
+var AllFilesConstraint = []FilesConstraint{
+	FilesConstraintFilesFileIDKey,
+	FilesConstraintFilesFilenameKey,
+	FilesConstraintFilesPkey,
+}
+
+func (e FilesConstraint) IsValid() bool {
+	switch e {
+	case FilesConstraintFilesFileIDKey, FilesConstraintFilesFilenameKey, FilesConstraintFilesPkey:
+		return true
+	}
+	return false
+}
+
+func (e FilesConstraint) String() string {
+	return string(e)
+}
+
+func (e *FilesConstraint) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = FilesConstraint(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid files_constraint", str)
+	}
+	return nil
+}
+
+func (e FilesConstraint) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+// SelectColumnsOfTable"files"
+type FilesSelectColumn string
+
+const (
+	// column name
+	FilesSelectColumnData FilesSelectColumn = "data"
+	// column name
+	FilesSelectColumnFileID FilesSelectColumn = "file_id"
+	// column name
+	FilesSelectColumnFilename FilesSelectColumn = "filename"
+	// column name
+	FilesSelectColumnRevisionID FilesSelectColumn = "revision_id"
+)
+
+var AllFilesSelectColumn = []FilesSelectColumn{
+	FilesSelectColumnData,
+	FilesSelectColumnFileID,
+	FilesSelectColumnFilename,
+	FilesSelectColumnRevisionID,
+}
+
+func (e FilesSelectColumn) IsValid() bool {
+	switch e {
+	case FilesSelectColumnData, FilesSelectColumnFileID, FilesSelectColumnFilename, FilesSelectColumnRevisionID:
+		return true
+	}
+	return false
+}
+
+func (e FilesSelectColumn) String() string {
+	return string(e)
+}
+
+func (e *FilesSelectColumn) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = FilesSelectColumn(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid files_select_column", str)
+	}
+	return nil
+}
+
+func (e FilesSelectColumn) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+// UpdateColumnsOfTable"files"
+type FilesUpdateColumn string
+
+const (
+	// column name
+	FilesUpdateColumnData FilesUpdateColumn = "data"
+	// column name
+	FilesUpdateColumnFileID FilesUpdateColumn = "file_id"
+	// column name
+	FilesUpdateColumnFilename FilesUpdateColumn = "filename"
+	// column name
+	FilesUpdateColumnRevisionID FilesUpdateColumn = "revision_id"
+)
+
+var AllFilesUpdateColumn = []FilesUpdateColumn{
+	FilesUpdateColumnData,
+	FilesUpdateColumnFileID,
+	FilesUpdateColumnFilename,
+	FilesUpdateColumnRevisionID,
+}
+
+func (e FilesUpdateColumn) IsValid() bool {
+	switch e {
+	case FilesUpdateColumnData, FilesUpdateColumnFileID, FilesUpdateColumnFilename, FilesUpdateColumnRevisionID:
+		return true
+	}
+	return false
+}
+
+func (e FilesUpdateColumn) String() string {
+	return string(e)
+}
+
+func (e *FilesUpdateColumn) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = FilesUpdateColumn(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid files_update_column", str)
+	}
+	return nil
+}
+
+func (e FilesUpdateColumn) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+// ColumnOrderingOptions
+type OrderBy string
+
+const (
+	// in the ascending order, nulls last
+	OrderByAsc OrderBy = "asc"
+	// in the ascending order, nulls first
+	OrderByAscNullsFirst OrderBy = "asc_nulls_first"
+	// in the ascending order, nulls last
+	OrderByAscNullsLast OrderBy = "asc_nulls_last"
+	// in the descending order, nulls first
+	OrderByDesc OrderBy = "desc"
+	// in the descending order, nulls first
+	OrderByDescNullsFirst OrderBy = "desc_nulls_first"
+	// in the descending order, nulls last
+	OrderByDescNullsLast OrderBy = "desc_nulls_last"
+)
+
+var AllOrderBy = []OrderBy{
+	OrderByAsc,
+	OrderByAscNullsFirst,
+	OrderByAscNullsLast,
+	OrderByDesc,
+	OrderByDescNullsFirst,
+	OrderByDescNullsLast,
+}
+
+func (e OrderBy) IsValid() bool {
+	switch e {
+	case OrderByAsc, OrderByAscNullsFirst, OrderByAscNullsLast, OrderByDesc, OrderByDescNullsFirst, OrderByDescNullsLast:
+		return true
+	}
+	return false
+}
+
+func (e OrderBy) String() string {
+	return string(e)
+}
+
+func (e *OrderBy) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = OrderBy(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid order_by", str)
+	}
+	return nil
+}
+
+func (e OrderBy) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+// UniqueOrPrimaryKeyConstraintsOnTable"revisions"
+type RevisionsConstraint string
+
+const (
+	// unique or primary key constraint
+	RevisionsConstraintRevisionsPkey RevisionsConstraint = "revisions_pkey"
+)
+
+var AllRevisionsConstraint = []RevisionsConstraint{
+	RevisionsConstraintRevisionsPkey,
+}
+
+func (e RevisionsConstraint) IsValid() bool {
+	switch e {
+	case RevisionsConstraintRevisionsPkey:
+		return true
+	}
+	return false
+}
+
+func (e RevisionsConstraint) String() string {
+	return string(e)
+}
+
+func (e *RevisionsConstraint) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = RevisionsConstraint(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid revisions_constraint", str)
+	}
+	return nil
+}
+
+func (e RevisionsConstraint) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+// SelectColumnsOfTable"revisions"
+type RevisionsSelectColumn string
+
+const (
+	// column name
+	RevisionsSelectColumnCompleted RevisionsSelectColumn = "completed"
+	// column name
+	RevisionsSelectColumnRevisionID RevisionsSelectColumn = "revision_id"
+	// column name
+	RevisionsSelectColumnStarted RevisionsSelectColumn = "started"
+)
+
+var AllRevisionsSelectColumn = []RevisionsSelectColumn{
+	RevisionsSelectColumnCompleted,
+	RevisionsSelectColumnRevisionID,
+	RevisionsSelectColumnStarted,
+}
+
+func (e RevisionsSelectColumn) IsValid() bool {
+	switch e {
+	case RevisionsSelectColumnCompleted, RevisionsSelectColumnRevisionID, RevisionsSelectColumnStarted:
+		return true
+	}
+	return false
+}
+
+func (e RevisionsSelectColumn) String() string {
+	return string(e)
+}
+
+func (e *RevisionsSelectColumn) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = RevisionsSelectColumn(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid revisions_select_column", str)
+	}
+	return nil
+}
+
+func (e RevisionsSelectColumn) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+// UpdateColumnsOfTable"revisions"
+type RevisionsUpdateColumn string
+
+const (
+	// column name
+	RevisionsUpdateColumnCompleted RevisionsUpdateColumn = "completed"
+	// column name
+	RevisionsUpdateColumnRevisionID RevisionsUpdateColumn = "revision_id"
+	// column name
+	RevisionsUpdateColumnStarted RevisionsUpdateColumn = "started"
+)
+
+var AllRevisionsUpdateColumn = []RevisionsUpdateColumn{
+	RevisionsUpdateColumnCompleted,
+	RevisionsUpdateColumnRevisionID,
+	RevisionsUpdateColumnStarted,
+}
+
+func (e RevisionsUpdateColumn) IsValid() bool {
+	switch e {
+	case RevisionsUpdateColumnCompleted, RevisionsUpdateColumnRevisionID, RevisionsUpdateColumnStarted:
+		return true
+	}
+	return false
+}
+
+func (e RevisionsUpdateColumn) String() string {
+	return string(e)
+}
+
+func (e *RevisionsUpdateColumn) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = RevisionsUpdateColumn(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid revisions_update_column", str)
+	}
+	return nil
+}
+
+func (e RevisionsUpdateColumn) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+// UniqueOrPrimaryKeyConstraintsOnTable"rules"
+type RulesConstraint string
+
+const (
+	// unique or primary key constraint
+	RulesConstraintRulesPkey RulesConstraint = "rules_pkey"
+	// unique or primary key constraint
+	RulesConstraintRulesPrincipalPriorityIgnoreKey RulesConstraint = "rules_principal_priority_ignore_key"
+	// unique or primary key constraint
+	RulesConstraintRulesPrincipalRuleIgnoreKey RulesConstraint = "rules_principal_rule_ignore_key"
+)
+
+var AllRulesConstraint = []RulesConstraint{
+	RulesConstraintRulesPkey,
+	RulesConstraintRulesPrincipalPriorityIgnoreKey,
+	RulesConstraintRulesPrincipalRuleIgnoreKey,
+}
+
+func (e RulesConstraint) IsValid() bool {
+	switch e {
+	case RulesConstraintRulesPkey, RulesConstraintRulesPrincipalPriorityIgnoreKey, RulesConstraintRulesPrincipalRuleIgnoreKey:
+		return true
+	}
+	return false
+}
+
+func (e RulesConstraint) String() string {
+	return string(e)
+}
+
+func (e *RulesConstraint) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = RulesConstraint(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid rules_constraint", str)
+	}
+	return nil
+}
+
+func (e RulesConstraint) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+// SelectColumnsOfTable"rules"
+type RulesSelectColumn string
+
+const (
+	// column name
+	RulesSelectColumnIgnore RulesSelectColumn = "ignore"
+	// column name
+	RulesSelectColumnPrincipal RulesSelectColumn = "principal"
+	// column name
+	RulesSelectColumnPriority RulesSelectColumn = "priority"
+	// column name
+	RulesSelectColumnRule RulesSelectColumn = "rule"
+	// column name
+	RulesSelectColumnRuleID RulesSelectColumn = "rule_id"
+)
+
+var AllRulesSelectColumn = []RulesSelectColumn{
+	RulesSelectColumnIgnore,
+	RulesSelectColumnPrincipal,
+	RulesSelectColumnPriority,
+	RulesSelectColumnRule,
+	RulesSelectColumnRuleID,
+}
+
+func (e RulesSelectColumn) IsValid() bool {
+	switch e {
+	case RulesSelectColumnIgnore, RulesSelectColumnPrincipal, RulesSelectColumnPriority, RulesSelectColumnRule, RulesSelectColumnRuleID:
+		return true
+	}
+	return false
+}
+
+func (e RulesSelectColumn) String() string {
+	return string(e)
+}
+
+func (e *RulesSelectColumn) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = RulesSelectColumn(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid rules_select_column", str)
+	}
+	return nil
+}
+
+func (e RulesSelectColumn) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+// UpdateColumnsOfTable"rules"
+type RulesUpdateColumn string
+
+const (
+	// column name
+	RulesUpdateColumnIgnore RulesUpdateColumn = "ignore"
+	// column name
+	RulesUpdateColumnPrincipal RulesUpdateColumn = "principal"
+	// column name
+	RulesUpdateColumnPriority RulesUpdateColumn = "priority"
+	// column name
+	RulesUpdateColumnRule RulesUpdateColumn = "rule"
+	// column name
+	RulesUpdateColumnRuleID RulesUpdateColumn = "rule_id"
+)
+
+var AllRulesUpdateColumn = []RulesUpdateColumn{
+	RulesUpdateColumnIgnore,
+	RulesUpdateColumnPrincipal,
+	RulesUpdateColumnPriority,
+	RulesUpdateColumnRule,
+	RulesUpdateColumnRuleID,
+}
+
+func (e RulesUpdateColumn) IsValid() bool {
+	switch e {
+	case RulesUpdateColumnIgnore, RulesUpdateColumnPrincipal, RulesUpdateColumnPriority, RulesUpdateColumnRule, RulesUpdateColumnRuleID:
+		return true
+	}
+	return false
+}
+
+func (e RulesUpdateColumn) String() string {
+	return string(e)
+}
+
+func (e *RulesUpdateColumn) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = RulesUpdateColumn(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid rules_update_column", str)
+	}
+	return nil
+}
+
+func (e RulesUpdateColumn) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
 }
