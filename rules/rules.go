@@ -71,10 +71,19 @@ func NewMatcher(rule string) (*RuleMatcher, error) {
 	for _, p := range places {
 		isconst, start, stop := p[0], p[1], p[2]
 		tokens = append(tokens, ruleToken{isConst: (isconst > 0), rulePos: [2]int{start, stop}, descr: rule[start:stop], terminator: ""})
+
 	}
 	for i, t := range tokens[1:] {
+		// if prev token is variable and this token is const, set terminator on prev token
 		if (t.isConst) && (!tokens[i].isConst) {
 			tokens[i].terminator = t.descr
+		}
+	}
+	// disallow folders in last variable by default
+	if len(tokens) > 0 {
+		t := tokens[len(tokens)-1]
+		if !t.isConst {
+			t.terminator = "/"
 		}
 	}
 	// fmt.Println("Tokens:", tokens)
@@ -159,7 +168,7 @@ func FindBestRuleIndex(parsed []RuleMatch) int {
 			lastPos = rm.lastPos
 			ret = i
 		}
-		if rm.full {
+		if rm.full { // should short-circuit on the first rule => rule order matters
 			return i
 		}
 	}
@@ -175,9 +184,7 @@ func ParseFilename(filename string, rules []RuleMatcher, onlyFull bool) *RuleMat
 	return &matches[i]
 }
 
-type strMap = map[string]string
-
-func ReadCSVTable(filename string) ([]strMap, error) {
+func ReadCSVTable(filename string) ([]map[string]string, error) {
 	csvFile, _ := os.Open(filename)
 	reader := csv.NewReader(bufio.NewReader(csvFile))
 	records, err := reader.ReadAll()
@@ -188,10 +195,10 @@ func ReadCSVTable(filename string) ([]strMap, error) {
 		return nil, fmt.Errorf("Invalid CSV header or no records found in `%v`", filename)
 	}
 	header := records[0]
-	ret := []strMap{}
+	ret := []map[string]string{}
 	for _, record := range records[1:] {
 		// convert each record into a map
-		r := strMap{}
+		r := map[string]string{}
 		for colnum, field := range header {
 			r[field] = record[colnum]
 		}
@@ -200,7 +207,7 @@ func ReadCSVTable(filename string) ([]strMap, error) {
 	return ret, nil
 }
 
-func CSVToRules(csv []strMap, convertSlashes bool) ([]RuleMatcher, error) {
+func CSVToRules(csv []map[string]string, convertSlashes bool) ([]RuleMatcher, error) {
 	ruleStrings := []string{}
 	for i, proto := range csv {
 		pathElems := []string{}
