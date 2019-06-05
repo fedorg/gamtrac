@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"sync"
 	"time"
+	"strings"
 
 	"github.com/fatih/structs"
 )
@@ -359,6 +360,47 @@ func triggerRevision(remotePaths []string, ac AppCredentials) (int, error) {
 	return *rev, nil
 }
 
+func updateDomainUsers(gg *api.GamtracGql, ac AppCredentials) {
+	// rslt := map[string]AnnotResult{}
+	li, err := scanner.NewConnectionInfo("biocad.loc", "biocad", ac.username, ac.pass, true, false)
+	if err != nil {
+		panic(err)
+	}
+	lc, err := scanner.LdapConnect(li)
+	if err != nil {
+		panic(err)
+	}
+	defer lc.Close()
+	users, err := scanner.LdapSearchUsers(lc, "dc=biocad,dc=loc", "") // fmt.SPrintf("(objectSid=%s)\n", *owner))
+	if err != nil {
+		panic(err)
+	}
+	domainUsers := make([]api.DomainUsers, len(users))
+	for i, user := range users {
+		grps := scanner.FilterGroups(user.MemberOf, []string{"DC=loc", "DC=biocad", "OU=biocad", "OU=Groups"})
+		// used only to hoist list of groups into sql text[] type
+		gs := []string{}
+		for _, g := range grps {
+			gs = append(gs, strings.Join(g, ","))
+		}
+		domainUsers[i] = api.DomainUsers{
+			Sid:      user.ObjectSid,
+			Username: user.SAMAccountName,
+			Name:     user.CN,
+			Groups:   strings.Join(gs, "\n"),
+		}
+		// fmt.Println(user)
+	}
+	err = gg.RunDeleteDomainUsers()
+	if err != nil {
+		panic(err)
+	}
+	err = gg.RunInsertDomainUsers(domainUsers)
+	if err != nil {
+		panic(err)
+	}
+}
+
 func main() {
 	ac := AppCredentials{}.FromEnv()
 	revDelay := os.Getenv("GAMTRAC_REVISION_DELAY")
@@ -366,43 +408,6 @@ func main() {
 	if err != nil || delay < 0 {
 		delay = 10
 	}
-
-	// // rslt := map[string]AnnotResult{}
-	/*
-		li, err := scanner.NewConnectionInfo("biocad.loc", "biocad", username, pass, true, false)
-		if err != nil {
-			panic(err)
-		}
-		lc, err := scanner.LdapConnect(li)
-		if err != nil {
-			panic(err)
-		}
-		defer lc.Close()
-		users, err := scanner.LdapSearchUsers(lc, "dc=biocad,dc=loc", "") // fmt.SPrintf("(objectSid=%s)\n", *owner))
-		if err != nil {
-			panic(err)
-		}
-		domainUsers := make([]api.DomainUsers, len(users))
-		for i, user := range users {
-			grps := scanner.FilterGroups(user.MemberOf, []string{"DC=loc", "DC=biocad", "OU=biocad", "OU=Groups"})
-			// used only to hoist list of groups into sql text[] type
-			domainUsers[i] = api.DomainUsers{
-				Sid:      user.ObjectSid,
-				Username: user.SAMAccountName,
-				Name:     user.CN,
-				Groups:   grps,
-			}
-			// fmt.Println(user)
-		}
-		err = gg.RunDeleteDomainUsers()
-		if err != nil {
-			panic(err)
-		}
-		err = gg.RunInsetDomainUsers(domainUsers)
-		if err != nil {
-			panic(err)
-		}
-	*/
 
 	argPaths := os.Args[1:]
 

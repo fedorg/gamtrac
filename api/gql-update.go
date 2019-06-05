@@ -177,7 +177,7 @@ func (gg *GamtracGql) RunCreateRevision() (*int, error) {
 	return &(respData.CreateRevision.Revisions[0].RevisionID), nil
 }
 
-func (gg *GamtracGql) RunInsetDomainUsers(users []DomainUsers) error {
+func (gg *GamtracGql) RunInsertDomainUsers(users []DomainUsers) error {
 	// var respData struct {
 	// 	InsertDomainUsers struct {
 	// 		DomainUsers []DomainUsers `json:"returning"`

@@ -24,3 +24,11 @@ Use cases:
  - use links to find raw data used in a particular report
  - get a time slice of related files
  - find non-compliant files
+
+
+
+
+ 
+create an api endpoint for endpoint crud => new table for endpoints
+// need to derive destination from mounted dir
+?only store relative path within destination
