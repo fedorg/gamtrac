@@ -1,0 +1,11 @@
+- args:
+    cascade: false
+    sql: "CREATE OR REPLACE VIEW \"public\".\"files\" AS \n SELECT DISTINCT ON (file_history.filename)
+      file_history.file_history_id\n   FROM file_history\n  WHERE (file_history.action
+      <> 'D'::text)\n  ORDER BY file_history.filename, file_history.file_history_id
+      DESC;"
+  type: run_sql
+- args:
+    name: files
+    schema: public
+  type: add_existing_table_or_view

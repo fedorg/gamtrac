@@ -1,4 +1,0 @@
-- args:
-    sql: alter table "public"."file_history" add constraint "file_history_filename_revision_id_key"
-      unique ("filename", "revision_id");
-  type: run_sql

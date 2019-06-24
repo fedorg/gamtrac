@@ -1,0 +1,13 @@
+- args:
+    name: file_history
+    table:
+      name: files
+      schema: public
+    using:
+      manual_configuration:
+        column_mapping:
+          file_history_id: file_history_id
+        remote_table:
+          name: file_history
+          schema: public
+  type: create_object_relationship

@@ -1,0 +1,3 @@
+- args:
+    sql: DROP VIEW "public"."files"
+  type: run_sql

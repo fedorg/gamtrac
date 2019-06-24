@@ -1,3 +1,0 @@
-- args:
-    sql: ALTER TABLE "public"."rules" DROP COLUMN "ignore"
-  type: run_sql

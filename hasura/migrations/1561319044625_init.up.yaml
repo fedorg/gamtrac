@@ -1,0 +1,78 @@
+- args:
+    allowlist: []
+    functions: []
+    query_collections: []
+    query_templates: []
+    remote_schemas: []
+    tables:
+    - array_relationships: []
+      delete_permissions: []
+      event_triggers: []
+      insert_permissions: []
+      object_relationships: []
+      select_permissions: []
+      table: rules
+      update_permissions: []
+    - array_relationships: []
+      delete_permissions: []
+      event_triggers: []
+      insert_permissions: []
+      object_relationships: []
+      select_permissions: []
+      table: rule_results
+      update_permissions: []
+    - array_relationships: []
+      delete_permissions: []
+      event_triggers: []
+      insert_permissions: []
+      object_relationships: []
+      select_permissions: []
+      table: domain_users
+      update_permissions: []
+    - array_relationships: []
+      delete_permissions: []
+      event_triggers: []
+      insert_permissions: []
+      object_relationships: []
+      select_permissions: []
+      table: files
+      update_permissions: []
+    - array_relationships:
+      - comment: null
+        name: rule_results
+        using:
+          foreign_key_constraint_on:
+            column: file_history_id
+            table: rule_results
+      delete_permissions: []
+      event_triggers: []
+      insert_permissions: []
+      object_relationships:
+      - comment: null
+        name: scan
+        using:
+          foreign_key_constraint_on: scan_id
+      - comment: null
+        name: prev
+        using:
+          foreign_key_constraint_on: prev_id
+      select_permissions: []
+      table: file_history
+      update_permissions: []
+    - array_relationships: []
+      delete_permissions: []
+      event_triggers: []
+      insert_permissions: []
+      object_relationships: []
+      select_permissions: []
+      table: scans
+      update_permissions: []
+    - array_relationships: []
+      delete_permissions: []
+      event_triggers: []
+      insert_permissions: []
+      object_relationships: []
+      select_permissions: []
+      table: endpoints
+      update_permissions: []
+  type: replace_metadata

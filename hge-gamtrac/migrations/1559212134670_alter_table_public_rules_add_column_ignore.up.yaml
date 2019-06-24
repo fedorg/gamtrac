@@ -1,4 +1,0 @@
-- args:
-    sql: ALTER TABLE "public"."rules" ADD COLUMN "ignore" boolean NOT NULL DEFAULT
-      false
-  type: run_sql

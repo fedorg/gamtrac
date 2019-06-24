@@ -1,0 +1,12 @@
+- args:
+    name: file_histories
+    table:
+      name: scans
+      schema: public
+    using:
+      foreign_key_constraint_on:
+        column: scan_id
+        table:
+          name: file_history
+          schema: public
+  type: create_array_relationship

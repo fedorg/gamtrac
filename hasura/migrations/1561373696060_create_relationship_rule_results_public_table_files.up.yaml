@@ -1,0 +1,13 @@
+- args:
+    name: rule_results
+    table:
+      name: files
+      schema: public
+    using:
+      manual_configuration:
+        column_mapping:
+          file_history_id: file_history_id
+        remote_table:
+          name: rule_results
+          schema: public
+  type: create_array_relationship

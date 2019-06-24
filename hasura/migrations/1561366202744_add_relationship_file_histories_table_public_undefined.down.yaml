@@ -1,0 +1,6 @@
+- args:
+    relationship: file_histories
+    table:
+      name: scans
+      schema: public
+  type: drop_relationship

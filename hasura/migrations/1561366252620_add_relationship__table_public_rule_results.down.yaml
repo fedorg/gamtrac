@@ -1,0 +1,6 @@
+- args:
+    relationship: file_history
+    table:
+      name: rule_results
+      schema: public
+  type: drop_relationship

@@ -1,0 +1,8 @@
+- args:
+    name: file_history
+    table:
+      name: rule_results
+      schema: public
+    using:
+      foreign_key_constraint_on: file_history_id
+  type: create_object_relationship
