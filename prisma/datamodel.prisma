@@ -1,0 +1,48 @@
+type DomainUser @db(name: "domain_users") {
+  sid: ID! @id
+  groups: Json!
+  name: String!
+  username: String! @unique
+}
+
+type Endpoint @db(name: "endpoints") {
+  endpoint_id: Int! @id(strategy: SEQUENCE) @sequence(name: "endpoints_endpoint_id_seq", initialValue: 1, allocationSize: 1)
+  ignore: Boolean! @default(value: false)
+  path: String! @unique
+  principal: Int
+}
+
+type FileHistory @db(name: "file_history") {
+  file_history_id: Int! @id(strategy: SEQUENCE) @sequence(name: "file_history_file_history_id_seq", initialValue: 1, allocationSize: 1)
+  action: String!
+  actionTstamp: DateTime! @db(name: "action_tstamp")
+  fileHistory: [FileHistory]
+  filename: String!
+  prev: FileHistory! @db(name: "prev_id") @default(value: 0)
+  ruleResults: [RuleResult]
+  scan: Scan! @db(name: "scan_id")
+}
+
+type Rule @db(name: "rules") {
+  rule_id: Int! @id(strategy: SEQUENCE) @sequence(name: "rules_rule_id_seq", initialValue: 1, allocationSize: 1)
+  ignore: Boolean! @default(value: false)
+  principal: Int
+  priority: Int!
+  rule: String!
+  ruleResults: [RuleResult]
+}
+
+type RuleResult @db(name: "rule_results") {
+  rule_result_id: Int! @id(strategy: SEQUENCE) @sequence(name: "rule_results_rule_result_id_seq", initialValue: 1, allocationSize: 1)
+  createdAt: DateTime! @db(name: "created_at")
+  data: Json
+  fileHistory: FileHistory! @db(name: "file_history_id")
+  rule: Rule! @db(name: "rule_id")
+}
+
+type Scan @db(name: "scans") {
+  scan_id: Int! @id(strategy: SEQUENCE) @sequence(name: "scans_scan_id_seq", initialValue: 1, allocationSize: 1)
+  completedAt: DateTime @db(name: "completed_at")
+  fileHistory: [FileHistory]
+  startedAt: DateTime! @db(name: "started_at")
+}

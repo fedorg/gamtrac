@@ -15,8 +15,11 @@ import (
 	"sync"
 	"time"
 	"strings"
+	"encoding/json"
+	"github.com/r3labs/diff"
 
 	"github.com/fatih/structs"
+
 )
 
 const USE_HASH = false
@@ -24,7 +27,7 @@ const USE_HASH = false
 type HashDigest = api.HashDigest
 type FileError = api.FileError
 type AnnotResult = api.AnnotResult
-type Files = api.Files
+
 
 type MountedPath struct {
 	Destination string
@@ -143,8 +146,8 @@ func collectResults(annots <-chan *AnnotResult, out chan<- map[string]*AnnotResu
 	out <- ret
 }
 
-func PushFileUpdates(gg *api.GamtracGql, revision int, rslts map[string]*AnnotResult) ([]api.Files, error) {
-	newFiles := make([]Files, len(rslts))
+func PushFileUpdates(gg *api.GamtracGql, scan int, oldFiles []api.FileHistory, rslts map[string]*AnnotResult) ([]api.FileHistory, error) {
+	newFiles := make([]api.FileHistory, len(rslts))
 	i := 0
 	for filename, r := range rslts {
 		var data map[string]interface{}
@@ -156,15 +159,28 @@ func PushFileUpdates(gg *api.GamtracGql, revision int, rslts map[string]*AnnotRe
 		} else {
 			data["Hash"] = nil
 		}
-		newFiles[i] = Files{
+		newFiles[i] = api.FileHistory{
 			Filename:   filename,
-			RevisionID: revision,
-			Data:       data,
+			ScanID:     scan,
+			RuleResults: nil,//[]*api.RuleResults {{ Data: data }},
+			Action: "C",
+			PrevID: 0,
 		}
 		i++
 	}
 
-	insertedFiles, err := gg.RunUpsertFiles(newFiles)
+	changes, err := CompareFileLists(oldFiles, newFiles)
+	if err != nil {
+		return nil, err
+	}
+	ctext, err := json.MarshalIndent(changes.CreatedInNew, "", " ")
+	dtext, err := json.MarshalIndent(changes.RemovedFromOld, "", " ")
+	mtext, err := json.MarshalIndent(changes.ModifiedInNew, "", " ")
+	fmt.Printf("Created:\n%v\n", string(ctext))
+	fmt.Printf("Removed:\n%v\n", string(dtext))
+	fmt.Printf("Changed:\n%v\n", string(mtext))
+
+	insertedFiles, err := gg.RunInsertFileHistory(newFiles)
 	if err != nil {
 		return nil, err
 	}
@@ -172,26 +188,98 @@ func PushFileUpdates(gg *api.GamtracGql, revision int, rslts map[string]*AnnotRe
 	if len(insertedFiles) != len(newFiles) {
 		return nil, fmt.Errorf("invalid number of file records inserted: expected %v, got %v", len(newFiles), len(insertedFiles))
 	}
-	for i, dbfile := range insertedFiles {
-		newFiles[i].FileID = dbfile.FileID
-	}
-	// delete old files that are not in this revision
-	// TODO: this should not delete files under untracked folders
-	_, err = gg.RunDeleteFiles(revision)
-	if err != nil {
-		fmt.Fprint(os.Stderr, err)
+	for i, fileid := range insertedFiles {
+		newFiles[i].FileHistoryID = fileid
 	}
 	// TODO: this function has shit error api
-	return insertedFiles, nil
+	return newFiles, nil
 }
 
-func ListToMap(list []Files) map[string]*Files {
-	ret := map[string]*Files{}
+
+type FilePropDiff struct {
+	NewPropValues map[string]string
+}
+
+type FileDiffResults struct {
+	CreatedInNew   map[string]*api.FileHistory
+	RemovedFromOld map[string]*api.FileHistory
+	ModifiedInNew  map[string]FilePropDiff
+}
+
+func ListToMap(list []api.FileHistory) map[string]*api.FileHistory {
+	ret := map[string]*api.FileHistory{}
 	for i, r := range list {
 		ret[r.Filename] = &list[i]
 	}
 	return ret
 }
+
+func CompareFileLists(oldFiles []api.FileHistory, newFiles []api.FileHistory) (*FileDiffResults, error) {
+	old, new := ListToMap(oldFiles), ListToMap(newFiles)
+	CreatedInNew, RemovedFromOld := map[string]*api.FileHistory{}, map[string]*api.FileHistory{}
+	// go over old and detect deletes
+	for filename, f := range old {
+		if _, ok := new[filename]; !ok {
+			RemovedFromOld[filename] = f
+		}
+	}
+	// go over new and detect creates
+	for filename, f := range new {
+		if _, ok := old[filename]; !ok {
+			CreatedInNew[filename] = f
+		}
+	}
+
+	
+
+	// fillStruct := func(data map[string]interface{}, recv interface{}) error {
+	// 	bytes, err := json.Marshal(data)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	err = json.Unmarshal(bytes, recv)
+	// 	return err
+	// }
+
+	// detect changes:
+	//	over new:
+	//		if in new: skip (leaves intersection)
+	//		unmarshal data
+	//		compare data
+	//		if compare non identical, detect modified
+	modified := map[string]FilePropDiff{}
+	for filename := range new {
+		of, inOld := old[filename]
+		nf, inNew := new[filename]
+		if !(inNew && inOld) {
+			continue
+		}
+		changes, err := diff.Diff(of, nf)
+		if err != nil {
+			return nil, err
+		}
+		newProps := map[string]string{}
+		for _, c := range changes {
+			key := c.Path[0]
+			bytes, err := json.Marshal(c.To)
+			if err != nil {
+				return nil, err
+			}
+			val := string(bytes)
+			newProps[key] = val
+		}
+		if len(newProps) > 0 {
+			modified[filename] = FilePropDiff{NewPropValues: newProps}
+		}
+		// outputs: deletes, creates, modified
+	}
+	return &FileDiffResults{
+		CreatedInNew:   CreatedInNew,
+		RemovedFromOld: RemovedFromOld,
+		ModifiedInNew:  modified,
+	}, nil
+}
+
 
 type AppCredentials struct {
 	domain      string
@@ -282,18 +370,29 @@ func rulesGetRemote(gg *api.GamtracGql) []rules.RuleMatcher {
 	return ret
 }
 
-func triggerRevision(remotePaths []string, ac AppCredentials) (int, error) {
-	gg := api.NewGamtracGql(ac.gqlEndpoint, 10000, false)
+func triggerScan(remotePaths []string, ac AppCredentials) (int, error) {
+	gg := api.NewGamtracGql(ac.gqlEndpoint, 10000, true)
+	// import (prisma "gamtrac/prisma/generated/prisma-client")
+	// import "context"
+	// ctx := context.Background()
+	// db := prisma.New(&prisma.Options{
+	// 	Endpoint: ac.gqlEndpoint,
+	// })
+	// rev1, err := db.CreateScan(prisma.ScanCreateInput{}).Exec(ctx)
+	// println(rev1)
+
 	paths, unmountAll, err := mountPaths(remotePaths, false, ac)
 	defer unmountAll()
 	if err != nil {
 		return -1, err
 	}
 
-	rev, err := gg.RunCreateRevision()
+	rev, err := gg.RunCreateScan()
 	if err != nil {
 		return -1, err
 	}
+	oldFiles, err := gg.RunFetchFiles()
+	
 	epoch := *rev
 	fmt.Printf("Epoch %v\n\n", epoch)
 
@@ -325,11 +424,15 @@ func triggerRevision(remotePaths []string, ac AppCredentials) (int, error) {
 				fmt.Fprintf(os.Stderr, "Error: %e\n", err)
 				return err
 			}
-			// path translation
+			// path translation from destination to mounted dir
 			relpath, err := filepath.Rel(p.MountedAt, path)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error: %e\n", err)
 				return err
+			}
+			// append a slash at the end of directories
+			if (f.IsDir() && !strings.HasSuffix(relpath, "/")) {
+				relpath = relpath + "/"
 			}
 			destpath := filepath.Join(p.Destination, relpath)
 			// slashes look hella weird with this but this is needed to normalize rules
@@ -348,32 +451,35 @@ func triggerRevision(remotePaths []string, ac AppCredentials) (int, error) {
 	wg.Wait()
 	close(output)
 	rslt := <-done
-	newFiles, err := PushFileUpdates(gg, int(epoch), rslt)
+	newFiles, err := PushFileUpdates(gg, int(epoch), oldFiles, rslt)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Cannot update files on server:\n%v\n", err)
 	}
 	for _, nf := range newFiles {
-		fmt.Printf("%6d| %v\n\n", nf.FileID, nf.Filename)
+		fmt.Printf("%6d| %v\n\n", nf.FileHistoryID, nf.Filename)
 	}
 	fmt.Fprintf(os.Stderr, "Finished epoch: %v\n", epoch)
 
 	return *rev, nil
 }
 
-func updateDomainUsers(gg *api.GamtracGql, ac AppCredentials) {
+
+func fetchDomainUsers(ac AppCredentials) ([]api.DomainUsers, error) {
 	// rslt := map[string]AnnotResult{}
 	li, err := scanner.NewConnectionInfo("biocad.loc", "biocad", ac.username, ac.pass, true, false)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	lc, err := scanner.LdapConnect(li)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	defer lc.Close()
 	users, err := scanner.LdapSearchUsers(lc, "dc=biocad,dc=loc", "") // fmt.SPrintf("(objectSid=%s)\n", *owner))
+	// user, err := scanner.LdapSearchUsers(lc,"dc=biocad,dc=loc", "(&(objectCategory=person)(objectClass=user)(SamAccountName=shtyreva))")
+	// fmt.Println(user)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	domainUsers := make([]api.DomainUsers, len(users))
 	for i, user := range users {
@@ -391,6 +497,14 @@ func updateDomainUsers(gg *api.GamtracGql, ac AppCredentials) {
 		}
 		// fmt.Println(user)
 	}
+	return domainUsers, nil
+}
+
+func updateDomainUsers(gg *api.GamtracGql, ac AppCredentials) {
+	domainUsers, err := fetchDomainUsers(ac)
+	if err != nil {
+		panic(err)
+	}
 	err = gg.RunDeleteDomainUsers()
 	if err != nil {
 		panic(err)
@@ -403,7 +517,8 @@ func updateDomainUsers(gg *api.GamtracGql, ac AppCredentials) {
 
 func main() {
 	ac := AppCredentials{}.FromEnv()
-	revDelay := os.Getenv("GAMTRAC_REVISION_DELAY")
+	// fetchDomainUsers(ac)
+	revDelay := os.Getenv("GAMTRAC_SCAN_DELAY")
 	delay, err := strconv.Atoi(revDelay)
 	if err != nil || delay < 0 {
 		delay = 10
@@ -412,11 +527,11 @@ func main() {
 	argPaths := os.Args[1:]
 
 	for {
-		rev, err := triggerRevision(argPaths, ac)
+		rev, err := triggerScan(argPaths, ac)
 		if err != nil {
-			fmt.Printf("Could not finish revision %v\n", rev)
+			fmt.Printf("Could not finish scan %v\n", rev)
 		} else {
-			fmt.Printf("Revision %v created successfully\n", rev)
+			fmt.Printf("Scan %v created successfully\n", rev)
 		}
 		time.Sleep(time.Second * time.Duration(delay))
 	}

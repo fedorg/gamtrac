@@ -1,12 +1,20 @@
 schema:
   - api/schema.graphql
 
-
 model:
   filename: api/models_gen.go
   package: api
 
 
 models:
-  files:
-    model: gamtrac/api.Files
+  timestamptz:
+    model: github.com/99designs/gqlgen/graphql.Time
+  bigint:
+    model: github.com/99designs/gqlgen/graphql.Int64
+  # jsonb:
+  #   model: github.com/99designs/gqlgen/graphql.Map
+
+  rule_results:
+    model: gamtrac/api.RuleResults
+  file_history:
+    model: gamtrac/api.FileHistory

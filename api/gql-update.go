@@ -43,128 +43,81 @@ func (gg *GamtracGql) Run(query string, rslt interface{}, vars map[string]interf
 	return nil
 }
 
-func (gg *GamtracGql) RunFetchFiles(rev int) ([]Files, error) {
+func (gg *GamtracGql) RunFetchFiles() ([]FileHistory, error) {
 	var respData struct {
-		Files []Files `json:"files"`
+		FileHistories []FileHistory `json:"file_history"`
 	}
 
 	query := `
-	query ($revision: Int) {
-		files(where: {revision_id: {_eq: $revision}}) {
-		  file_id
-		  filename
-		  revision_id
-		  data
+	query {
+		files {
+		  file_history {
+			file_history_id
+			action
+			action_tstamp
+			filename
+			prev_id
+			scan_id
+			rule_results {
+				file_history_id
+				rule_result_id
+				rule_id
+				created_at
+				data
+			}
+		  }
 		}
 	}
 	`
-	vars := map[string]interface{}{ // what the fuck, this is clearly map[string]int
-		"revision": rev,
-	}
-	if err := gg.Run(query, &respData, vars); err != nil {
+	if err := gg.Run(query, &respData, nil); err != nil {
 		return nil, err
 	}
-	return respData.Files, nil
+	return respData.FileHistories, nil
 }
 
-func (gg *GamtracGql) RunUpsertFiles(files []Files) ([]Files, error) {
+func (gg *GamtracGql) RunInsertFileHistory(files []FileHistory) ([]int64, error) {
 	var respData struct {
-		InsertFiles struct {
-			Files []Files `json:"returning"`
-		} `json:"insert_files"`
+		InsertFileHistory struct {
+			FileHistories []FileHistory `json:"returning"`
+		} `json:"insert_file_history"`
 	}
 
 	query := `
-	mutation ($files: [files_insert_input!]!) {
-		insert_files(objects: $files,
-		  on_conflict: {
-			constraint: files_filename_key,
-			update_columns: [revision_id, data]
-		  }
-		)
+	mutation ($files: [file_history_insert_input!]!) {
+		insert_file_history(objects: $files)
 		{
 		  returning {
-			file_id
+			file_history_id
 		  }
 		}
 	}
 	`
+
 	vars := map[string]interface{}{
 		"files": files,
 	}
 	if err := gg.Run(query, &respData, vars); err != nil {
 		return nil, err
 	}
-	return respData.InsertFiles.Files, nil
+	ret := []int64{}
+	for _, fh := range respData.InsertFileHistory.FileHistories {
+		ret = append(ret, fh.FileHistoryID)
+	}
+	return ret, nil
 }
 
-func (gg *GamtracGql) RunInsertFiles(files []Files) ([]Files, error) {
+func (gg *GamtracGql) RunCreateScan() (*int, error) {
 	var respData struct {
-		InsertFiles struct {
-			Files []Files `json:"returning"`
-		} `json:"insert_files"`
-	}
-
-	query := `
-	mutation ($files: [files_insert_input!]!) {
-		insert_files(objects: $files) {
-		  returning {
-			file_id
-		  }
-		}
-	  }
-	`
-	vars := map[string]interface{}{ // what the fuck, this is clearly map[string]int
-		"files": files,
-	}
-	if err := gg.Run(query, &respData, vars); err != nil {
-		return nil, err
-	}
-	return respData.InsertFiles.Files, nil
-}
-
-func (gg *GamtracGql) RunDeleteFiles(currentRevision int) ([]Files, error) {
-	var respData struct {
-		DeleteFiles struct {
-			Files []Files `json:"returning"`
-		} `json:"update_files"`
-	}
-
-	query := `
-	mutation ($cur_rev: Int) {
-		update_files(
-			where: {revision_id: {_lt: $cur_rev}},
-			_set: {filename: null}
-			) {
-			returning {
-				filename
-				file_id
-				revision_id
-			}
-		}
-	}
-	`
-	vars := map[string]interface{}{ // what the fuck, this is clearly map[string]int
-		"cur_rev": currentRevision,
-	}
-	if err := gg.Run(query, &respData, vars); err != nil {
-		return nil, err
-	}
-	return respData.DeleteFiles.Files, nil
-}
-
-func (gg *GamtracGql) RunCreateRevision() (*int, error) {
-	var respData struct {
-		CreateRevision struct {
-			Revisions []Revisions `json:"returning"`
-		} `json:"insert_revisions"`
+		CreateScan struct {
+			Scans []Scans `json:"returning"`
+		} `json:"insert_scans"`
 	}
 
 	query := `
 	mutation {
-		insert_revisions(objects: [{}]) {
+		insert_scans(objects: [{}]) {
 		  returning {
-			revision_id
+			scan_id
 		  }
 		}
 	  }
@@ -174,7 +127,7 @@ func (gg *GamtracGql) RunCreateRevision() (*int, error) {
 		return nil, err
 	}
 
-	return &(respData.CreateRevision.Revisions[0].RevisionID), nil
+	return &(respData.CreateScan.Scans[0].ScanID), nil
 }
 
 func (gg *GamtracGql) RunInsertDomainUsers(users []DomainUsers) error {

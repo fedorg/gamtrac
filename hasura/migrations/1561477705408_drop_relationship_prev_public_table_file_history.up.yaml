@@ -1,0 +1,6 @@
+- args:
+    relationship: prev
+    table:
+      name: file_history
+      schema: public
+  type: drop_relationship

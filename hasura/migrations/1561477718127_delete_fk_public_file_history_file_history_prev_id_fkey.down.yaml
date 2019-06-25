@@ -1,0 +1,4 @@
+- args:
+    sql: alter table "public"."file_history" add foreign key ("prev_id") references
+      "public"."file_history"("file_history_id") on update restrict on delete restrict;
+  type: run_sql

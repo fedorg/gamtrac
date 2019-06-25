@@ -1,0 +1,6 @@
+- args:
+    cascade: false
+    sql: |-
+      alter table file_history drop constraint file_history_action_check;
+      alter table file_history add constraint file_history_action_check CHECK ((action = ANY (ARRAY['C'::text, 'D'::text, 'M'::text, 'E'::text])));
+  type: run_sql

@@ -1,0 +1,8 @@
+- args:
+    name: prev
+    table:
+      name: file_history
+      schema: public
+    using:
+      foreign_key_constraint_on: prev_id
+  type: create_object_relationship

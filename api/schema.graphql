@@ -272,24 +272,384 @@ enum domain_users_update_column {
 }
 
 """
+columns and relationships of "endpoints"
+"""
+type endpoints {
+  endpoint_id: Int!
+  ignore: Boolean!
+  path: String!
+  principal: Int
+}
+
+"""
+aggregated selection of "endpoints"
+"""
+type endpoints_aggregate {
+  aggregate: endpoints_aggregate_fields
+  nodes: [endpoints!]!
+}
+
+"""
+aggregate fields of "endpoints"
+"""
+type endpoints_aggregate_fields {
+  avg: endpoints_avg_fields
+  count(columns: [endpoints_select_column!], distinct: Boolean): Int
+  max: endpoints_max_fields
+  min: endpoints_min_fields
+  stddev: endpoints_stddev_fields
+  stddev_pop: endpoints_stddev_pop_fields
+  stddev_samp: endpoints_stddev_samp_fields
+  sum: endpoints_sum_fields
+  var_pop: endpoints_var_pop_fields
+  var_samp: endpoints_var_samp_fields
+  variance: endpoints_variance_fields
+}
+
+"""
+order by aggregate values of table "endpoints"
+"""
+input endpoints_aggregate_order_by {
+  avg: endpoints_avg_order_by
+  count: order_by
+  max: endpoints_max_order_by
+  min: endpoints_min_order_by
+  stddev: endpoints_stddev_order_by
+  stddev_pop: endpoints_stddev_pop_order_by
+  stddev_samp: endpoints_stddev_samp_order_by
+  sum: endpoints_sum_order_by
+  var_pop: endpoints_var_pop_order_by
+  var_samp: endpoints_var_samp_order_by
+  variance: endpoints_variance_order_by
+}
+
+"""
+input type for inserting array relation for remote table "endpoints"
+"""
+input endpoints_arr_rel_insert_input {
+  data: [endpoints_insert_input!]!
+  on_conflict: endpoints_on_conflict
+}
+
+"""aggregate avg on columns"""
+type endpoints_avg_fields {
+  endpoint_id: Float
+  principal: Float
+}
+
+"""
+order by avg() on columns of table "endpoints"
+"""
+input endpoints_avg_order_by {
+  endpoint_id: order_by
+  principal: order_by
+}
+
+"""
+Boolean expression to filter rows from the table "endpoints". All fields are combined with a logical 'AND'.
+"""
+input endpoints_bool_exp {
+  _and: [endpoints_bool_exp]
+  _not: endpoints_bool_exp
+  _or: [endpoints_bool_exp]
+  endpoint_id: integer_comparison_exp
+  ignore: boolean_comparison_exp
+  path: text_comparison_exp
+  principal: integer_comparison_exp
+}
+
+"""
+unique or primary key constraints on table "endpoints"
+"""
+enum endpoints_constraint {
+  """unique or primary key constraint"""
+  endpoints_path_key
+
+  """unique or primary key constraint"""
+  endpoints_pkey
+}
+
+"""
+input type for incrementing integer columne in table "endpoints"
+"""
+input endpoints_inc_input {
+  endpoint_id: Int
+  principal: Int
+}
+
+"""
+input type for inserting data into table "endpoints"
+"""
+input endpoints_insert_input {
+  endpoint_id: Int
+  ignore: Boolean
+  path: String
+  principal: Int
+}
+
+"""aggregate max on columns"""
+type endpoints_max_fields {
+  endpoint_id: Int
+  path: String
+  principal: Int
+}
+
+"""
+order by max() on columns of table "endpoints"
+"""
+input endpoints_max_order_by {
+  endpoint_id: order_by
+  path: order_by
+  principal: order_by
+}
+
+"""aggregate min on columns"""
+type endpoints_min_fields {
+  endpoint_id: Int
+  path: String
+  principal: Int
+}
+
+"""
+order by min() on columns of table "endpoints"
+"""
+input endpoints_min_order_by {
+  endpoint_id: order_by
+  path: order_by
+  principal: order_by
+}
+
+"""
+response of any mutation on the table "endpoints"
+"""
+type endpoints_mutation_response {
+  """number of affected rows by the mutation"""
+  affected_rows: Int!
+
+  """data of the affected rows by the mutation"""
+  returning: [endpoints!]!
+}
+
+"""
+input type for inserting object relation for remote table "endpoints"
+"""
+input endpoints_obj_rel_insert_input {
+  data: endpoints_insert_input!
+  on_conflict: endpoints_on_conflict
+}
+
+"""
+on conflict condition type for table "endpoints"
+"""
+input endpoints_on_conflict {
+  constraint: endpoints_constraint!
+  update_columns: [endpoints_update_column!]!
+}
+
+"""
+ordering options when selecting data from "endpoints"
+"""
+input endpoints_order_by {
+  endpoint_id: order_by
+  ignore: order_by
+  path: order_by
+  principal: order_by
+}
+
+"""
+select columns of table "endpoints"
+"""
+enum endpoints_select_column {
+  """column name"""
+  endpoint_id
+
+  """column name"""
+  ignore
+
+  """column name"""
+  path
+
+  """column name"""
+  principal
+}
+
+"""
+input type for updating data in table "endpoints"
+"""
+input endpoints_set_input {
+  endpoint_id: Int
+  ignore: Boolean
+  path: String
+  principal: Int
+}
+
+"""aggregate stddev on columns"""
+type endpoints_stddev_fields {
+  endpoint_id: Float
+  principal: Float
+}
+
+"""
+order by stddev() on columns of table "endpoints"
+"""
+input endpoints_stddev_order_by {
+  endpoint_id: order_by
+  principal: order_by
+}
+
+"""aggregate stddev_pop on columns"""
+type endpoints_stddev_pop_fields {
+  endpoint_id: Float
+  principal: Float
+}
+
+"""
+order by stddev_pop() on columns of table "endpoints"
+"""
+input endpoints_stddev_pop_order_by {
+  endpoint_id: order_by
+  principal: order_by
+}
+
+"""aggregate stddev_samp on columns"""
+type endpoints_stddev_samp_fields {
+  endpoint_id: Float
+  principal: Float
+}
+
+"""
+order by stddev_samp() on columns of table "endpoints"
+"""
+input endpoints_stddev_samp_order_by {
+  endpoint_id: order_by
+  principal: order_by
+}
+
+"""aggregate sum on columns"""
+type endpoints_sum_fields {
+  endpoint_id: Int
+  principal: Int
+}
+
+"""
+order by sum() on columns of table "endpoints"
+"""
+input endpoints_sum_order_by {
+  endpoint_id: order_by
+  principal: order_by
+}
+
+"""
+update columns of table "endpoints"
+"""
+enum endpoints_update_column {
+  """column name"""
+  endpoint_id
+
+  """column name"""
+  ignore
+
+  """column name"""
+  path
+
+  """column name"""
+  principal
+}
+
+"""aggregate var_pop on columns"""
+type endpoints_var_pop_fields {
+  endpoint_id: Float
+  principal: Float
+}
+
+"""
+order by var_pop() on columns of table "endpoints"
+"""
+input endpoints_var_pop_order_by {
+  endpoint_id: order_by
+  principal: order_by
+}
+
+"""aggregate var_samp on columns"""
+type endpoints_var_samp_fields {
+  endpoint_id: Float
+  principal: Float
+}
+
+"""
+order by var_samp() on columns of table "endpoints"
+"""
+input endpoints_var_samp_order_by {
+  endpoint_id: order_by
+  principal: order_by
+}
+
+"""aggregate variance on columns"""
+type endpoints_variance_fields {
+  endpoint_id: Float
+  principal: Float
+}
+
+"""
+order by variance() on columns of table "endpoints"
+"""
+input endpoints_variance_order_by {
+  endpoint_id: order_by
+  principal: order_by
+}
+
+"""
 columns and relationships of "file_history"
 """
 type file_history {
   action: String!
   action_tstamp: timestamptz!
-  data(
-    """JSON select path"""
-    path: String
-  ): jsonb
-
-  """An object relationship"""
-  file: files
   file_history_id: bigint!
   filename: String!
 
   """An object relationship"""
-  revision: revisions
-  revision_id: Int
+  prev: file_history!
+  prev_id: Int!
+
+  """An array relationship"""
+  rule_results(
+    """distinct select on columns"""
+    distinct_on: [rule_results_select_column!]
+
+    """limit the nuber of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [rule_results_order_by!]
+
+    """filter the rows returned"""
+    where: rule_results_bool_exp
+  ): [rule_results!]!
+
+  """An aggregated array relationship"""
+  rule_results_aggregate(
+    """distinct select on columns"""
+    distinct_on: [rule_results_select_column!]
+
+    """limit the nuber of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [rule_results_order_by!]
+
+    """filter the rows returned"""
+    where: rule_results_bool_exp
+  ): rule_results_aggregate!
+
+  """An object relationship"""
+  scan: scans!
+  scan_id: Int!
 }
 
 """
@@ -334,11 +694,6 @@ input file_history_aggregate_order_by {
   variance: file_history_variance_order_by
 }
 
-"""append existing jsonb value of filtered columns with new jsonb value"""
-input file_history_append_input {
-  data: jsonb
-}
-
 """
 input type for inserting array relation for remote table "file_history"
 """
@@ -350,7 +705,8 @@ input file_history_arr_rel_insert_input {
 """aggregate avg on columns"""
 type file_history_avg_fields {
   file_history_id: Float
-  revision_id: Float
+  prev_id: Float
+  scan_id: Float
 }
 
 """
@@ -358,7 +714,8 @@ order by avg() on columns of table "file_history"
 """
 input file_history_avg_order_by {
   file_history_id: order_by
-  revision_id: order_by
+  prev_id: order_by
+  scan_id: order_by
 }
 
 """
@@ -370,12 +727,13 @@ input file_history_bool_exp {
   _or: [file_history_bool_exp]
   action: text_comparison_exp
   action_tstamp: timestamptz_comparison_exp
-  data: jsonb_comparison_exp
-  file: files_bool_exp
   file_history_id: bigint_comparison_exp
   filename: text_comparison_exp
-  revision: revisions_bool_exp
-  revision_id: integer_comparison_exp
+  prev: file_history_bool_exp
+  prev_id: integer_comparison_exp
+  rule_results: rule_results_bool_exp
+  scan: scans_bool_exp
+  scan_id: integer_comparison_exp
 }
 
 """
@@ -384,28 +742,12 @@ unique or primary key constraints on table "file_history"
 enum file_history_constraint {
   """unique or primary key constraint"""
   file_history_pkey
-}
 
-"""
-delete the field or element with specified path (for JSON arrays, negative integers count from the end)
-"""
-input file_history_delete_at_path_input {
-  data: [String]
-}
+  """unique or primary key constraint"""
+  file_history_scan_id_filename_key
 
-"""
-delete the array element with specified index (negative integers count from the
-end). throws an error if top level container is not an array
-"""
-input file_history_delete_elem_input {
-  data: Int
-}
-
-"""
-delete key/value pair or string element. key/value pairs are matched based on their key value
-"""
-input file_history_delete_key_input {
-  data: String
+  """unique or primary key constraint"""
+  file_history_scan_id_filename_prev_id_key
 }
 
 """
@@ -413,7 +755,8 @@ input type for incrementing integer columne in table "file_history"
 """
 input file_history_inc_input {
   file_history_id: bigint
-  revision_id: Int
+  prev_id: Int
+  scan_id: Int
 }
 
 """
@@ -422,12 +765,13 @@ input type for inserting data into table "file_history"
 input file_history_insert_input {
   action: String
   action_tstamp: timestamptz
-  data: jsonb
-  file: files_obj_rel_insert_input
   file_history_id: bigint
   filename: String
-  revision: revisions_obj_rel_insert_input
-  revision_id: Int
+  prev: file_history_obj_rel_insert_input
+  prev_id: Int
+  rule_results: rule_results_arr_rel_insert_input
+  scan: scans_obj_rel_insert_input
+  scan_id: Int
 }
 
 """aggregate max on columns"""
@@ -436,7 +780,8 @@ type file_history_max_fields {
   action_tstamp: timestamptz
   file_history_id: bigint
   filename: String
-  revision_id: Int
+  prev_id: Int
+  scan_id: Int
 }
 
 """
@@ -447,7 +792,8 @@ input file_history_max_order_by {
   action_tstamp: order_by
   file_history_id: order_by
   filename: order_by
-  revision_id: order_by
+  prev_id: order_by
+  scan_id: order_by
 }
 
 """aggregate min on columns"""
@@ -456,7 +802,8 @@ type file_history_min_fields {
   action_tstamp: timestamptz
   file_history_id: bigint
   filename: String
-  revision_id: Int
+  prev_id: Int
+  scan_id: Int
 }
 
 """
@@ -467,7 +814,8 @@ input file_history_min_order_by {
   action_tstamp: order_by
   file_history_id: order_by
   filename: order_by
-  revision_id: order_by
+  prev_id: order_by
+  scan_id: order_by
 }
 
 """
@@ -503,17 +851,13 @@ ordering options when selecting data from "file_history"
 input file_history_order_by {
   action: order_by
   action_tstamp: order_by
-  data: order_by
-  file: files_order_by
   file_history_id: order_by
   filename: order_by
-  revision: revisions_order_by
-  revision_id: order_by
-}
-
-"""prepend existing jsonb value of filtered columns with new jsonb value"""
-input file_history_prepend_input {
-  data: jsonb
+  prev: file_history_order_by
+  prev_id: order_by
+  rule_results_aggregate: rule_results_aggregate_order_by
+  scan: scans_order_by
+  scan_id: order_by
 }
 
 """
@@ -527,16 +871,16 @@ enum file_history_select_column {
   action_tstamp
 
   """column name"""
-  data
-
-  """column name"""
   file_history_id
 
   """column name"""
   filename
 
   """column name"""
-  revision_id
+  prev_id
+
+  """column name"""
+  scan_id
 }
 
 """
@@ -545,16 +889,17 @@ input type for updating data in table "file_history"
 input file_history_set_input {
   action: String
   action_tstamp: timestamptz
-  data: jsonb
   file_history_id: bigint
   filename: String
-  revision_id: Int
+  prev_id: Int
+  scan_id: Int
 }
 
 """aggregate stddev on columns"""
 type file_history_stddev_fields {
   file_history_id: Float
-  revision_id: Float
+  prev_id: Float
+  scan_id: Float
 }
 
 """
@@ -562,13 +907,15 @@ order by stddev() on columns of table "file_history"
 """
 input file_history_stddev_order_by {
   file_history_id: order_by
-  revision_id: order_by
+  prev_id: order_by
+  scan_id: order_by
 }
 
 """aggregate stddev_pop on columns"""
 type file_history_stddev_pop_fields {
   file_history_id: Float
-  revision_id: Float
+  prev_id: Float
+  scan_id: Float
 }
 
 """
@@ -576,13 +923,15 @@ order by stddev_pop() on columns of table "file_history"
 """
 input file_history_stddev_pop_order_by {
   file_history_id: order_by
-  revision_id: order_by
+  prev_id: order_by
+  scan_id: order_by
 }
 
 """aggregate stddev_samp on columns"""
 type file_history_stddev_samp_fields {
   file_history_id: Float
-  revision_id: Float
+  prev_id: Float
+  scan_id: Float
 }
 
 """
@@ -590,13 +939,15 @@ order by stddev_samp() on columns of table "file_history"
 """
 input file_history_stddev_samp_order_by {
   file_history_id: order_by
-  revision_id: order_by
+  prev_id: order_by
+  scan_id: order_by
 }
 
 """aggregate sum on columns"""
 type file_history_sum_fields {
   file_history_id: bigint
-  revision_id: Int
+  prev_id: Int
+  scan_id: Int
 }
 
 """
@@ -604,7 +955,8 @@ order by sum() on columns of table "file_history"
 """
 input file_history_sum_order_by {
   file_history_id: order_by
-  revision_id: order_by
+  prev_id: order_by
+  scan_id: order_by
 }
 
 """
@@ -618,22 +970,23 @@ enum file_history_update_column {
   action_tstamp
 
   """column name"""
-  data
-
-  """column name"""
   file_history_id
 
   """column name"""
   filename
 
   """column name"""
-  revision_id
+  prev_id
+
+  """column name"""
+  scan_id
 }
 
 """aggregate var_pop on columns"""
 type file_history_var_pop_fields {
   file_history_id: Float
-  revision_id: Float
+  prev_id: Float
+  scan_id: Float
 }
 
 """
@@ -641,13 +994,15 @@ order by var_pop() on columns of table "file_history"
 """
 input file_history_var_pop_order_by {
   file_history_id: order_by
-  revision_id: order_by
+  prev_id: order_by
+  scan_id: order_by
 }
 
 """aggregate var_samp on columns"""
 type file_history_var_samp_fields {
   file_history_id: Float
-  revision_id: Float
+  prev_id: Float
+  scan_id: Float
 }
 
 """
@@ -655,13 +1010,15 @@ order by var_samp() on columns of table "file_history"
 """
 input file_history_var_samp_order_by {
   file_history_id: order_by
-  revision_id: order_by
+  prev_id: order_by
+  scan_id: order_by
 }
 
 """aggregate variance on columns"""
 type file_history_variance_fields {
   file_history_id: Float
-  revision_id: Float
+  prev_id: Float
+  scan_id: Float
 }
 
 """
@@ -669,22 +1026,22 @@ order by variance() on columns of table "file_history"
 """
 input file_history_variance_order_by {
   file_history_id: order_by
-  revision_id: order_by
+  prev_id: order_by
+  scan_id: order_by
 }
 
 """
 columns and relationships of "files"
 """
 type files {
-  data(
-    """JSON select path"""
-    path: String
-  ): jsonb!
+  """An object relationship"""
+  file_history: file_history
+  file_history_id: bigint
 
   """An array relationship"""
-  file_history(
+  rule_results(
     """distinct select on columns"""
-    distinct_on: [file_history_select_column!]
+    distinct_on: [rule_results_select_column!]
 
     """limit the nuber of rows returned"""
     limit: Int
@@ -693,16 +1050,16 @@ type files {
     offset: Int
 
     """sort the rows by one or more columns"""
-    order_by: [file_history_order_by!]
+    order_by: [rule_results_order_by!]
 
     """filter the rows returned"""
-    where: file_history_bool_exp
-  ): [file_history!]!
+    where: rule_results_bool_exp
+  ): [rule_results!]!
 
   """An aggregated array relationship"""
-  file_history_aggregate(
+  rule_results_aggregate(
     """distinct select on columns"""
-    distinct_on: [file_history_select_column!]
+    distinct_on: [rule_results_select_column!]
 
     """limit the nuber of rows returned"""
     limit: Int
@@ -711,17 +1068,11 @@ type files {
     offset: Int
 
     """sort the rows by one or more columns"""
-    order_by: [file_history_order_by!]
+    order_by: [rule_results_order_by!]
 
     """filter the rows returned"""
-    where: file_history_bool_exp
-  ): file_history_aggregate!
-  file_id: bigint!
-  filename: String
-
-  """An object relationship"""
-  revision: revisions!
-  revision_id: Int!
+    where: rule_results_bool_exp
+  ): rule_results_aggregate!
 }
 
 """
@@ -766,31 +1117,16 @@ input files_aggregate_order_by {
   variance: files_variance_order_by
 }
 
-"""append existing jsonb value of filtered columns with new jsonb value"""
-input files_append_input {
-  data: jsonb
-}
-
-"""
-input type for inserting array relation for remote table "files"
-"""
-input files_arr_rel_insert_input {
-  data: [files_insert_input!]!
-  on_conflict: files_on_conflict
-}
-
 """aggregate avg on columns"""
 type files_avg_fields {
-  file_id: Float
-  revision_id: Float
+  file_history_id: Float
 }
 
 """
 order by avg() on columns of table "files"
 """
 input files_avg_order_by {
-  file_id: order_by
-  revision_id: order_by
+  file_history_id: order_by
 }
 
 """
@@ -800,144 +1136,42 @@ input files_bool_exp {
   _and: [files_bool_exp]
   _not: files_bool_exp
   _or: [files_bool_exp]
-  data: jsonb_comparison_exp
   file_history: file_history_bool_exp
-  file_id: bigint_comparison_exp
-  filename: text_comparison_exp
-  revision: revisions_bool_exp
-  revision_id: integer_comparison_exp
-}
-
-"""
-unique or primary key constraints on table "files"
-"""
-enum files_constraint {
-  """unique or primary key constraint"""
-  files_file_id_key
-
-  """unique or primary key constraint"""
-  files_filename_key
-
-  """unique or primary key constraint"""
-  files_pkey
-}
-
-"""
-delete the field or element with specified path (for JSON arrays, negative integers count from the end)
-"""
-input files_delete_at_path_input {
-  data: [String]
-}
-
-"""
-delete the array element with specified index (negative integers count from the
-end). throws an error if top level container is not an array
-"""
-input files_delete_elem_input {
-  data: Int
-}
-
-"""
-delete key/value pair or string element. key/value pairs are matched based on their key value
-"""
-input files_delete_key_input {
-  data: String
-}
-
-"""
-input type for incrementing integer columne in table "files"
-"""
-input files_inc_input {
-  file_id: bigint
-  revision_id: Int
-}
-
-"""
-input type for inserting data into table "files"
-"""
-input files_insert_input {
-  data: jsonb
-  file_history: file_history_arr_rel_insert_input
-  file_id: bigint
-  filename: String
-  revision: revisions_obj_rel_insert_input
-  revision_id: Int
+  file_history_id: bigint_comparison_exp
+  rule_results: rule_results_bool_exp
 }
 
 """aggregate max on columns"""
 type files_max_fields {
-  file_id: bigint
-  filename: String
-  revision_id: Int
+  file_history_id: bigint
 }
 
 """
 order by max() on columns of table "files"
 """
 input files_max_order_by {
-  file_id: order_by
-  filename: order_by
-  revision_id: order_by
+  file_history_id: order_by
 }
 
 """aggregate min on columns"""
 type files_min_fields {
-  file_id: bigint
-  filename: String
-  revision_id: Int
+  file_history_id: bigint
 }
 
 """
 order by min() on columns of table "files"
 """
 input files_min_order_by {
-  file_id: order_by
-  filename: order_by
-  revision_id: order_by
-}
-
-"""
-response of any mutation on the table "files"
-"""
-type files_mutation_response {
-  """number of affected rows by the mutation"""
-  affected_rows: Int!
-
-  """data of the affected rows by the mutation"""
-  returning: [files!]!
-}
-
-"""
-input type for inserting object relation for remote table "files"
-"""
-input files_obj_rel_insert_input {
-  data: files_insert_input!
-  on_conflict: files_on_conflict
-}
-
-"""
-on conflict condition type for table "files"
-"""
-input files_on_conflict {
-  constraint: files_constraint!
-  update_columns: [files_update_column!]!
+  file_history_id: order_by
 }
 
 """
 ordering options when selecting data from "files"
 """
 input files_order_by {
-  data: order_by
-  file_history_aggregate: file_history_aggregate_order_by
-  file_id: order_by
-  filename: order_by
-  revision: revisions_order_by
-  revision_id: order_by
-}
-
-"""prepend existing jsonb value of filtered columns with new jsonb value"""
-input files_prepend_input {
-  data: jsonb
+  file_history: file_history_order_by
+  file_history_id: order_by
+  rule_results_aggregate: rule_results_aggregate_order_by
 }
 
 """
@@ -945,141 +1179,91 @@ select columns of table "files"
 """
 enum files_select_column {
   """column name"""
-  data
-
-  """column name"""
-  file_id
-
-  """column name"""
-  filename
-
-  """column name"""
-  revision_id
-}
-
-"""
-input type for updating data in table "files"
-"""
-input files_set_input {
-  data: jsonb
-  file_id: bigint
-  filename: String
-  revision_id: Int
+  file_history_id
 }
 
 """aggregate stddev on columns"""
 type files_stddev_fields {
-  file_id: Float
-  revision_id: Float
+  file_history_id: Float
 }
 
 """
 order by stddev() on columns of table "files"
 """
 input files_stddev_order_by {
-  file_id: order_by
-  revision_id: order_by
+  file_history_id: order_by
 }
 
 """aggregate stddev_pop on columns"""
 type files_stddev_pop_fields {
-  file_id: Float
-  revision_id: Float
+  file_history_id: Float
 }
 
 """
 order by stddev_pop() on columns of table "files"
 """
 input files_stddev_pop_order_by {
-  file_id: order_by
-  revision_id: order_by
+  file_history_id: order_by
 }
 
 """aggregate stddev_samp on columns"""
 type files_stddev_samp_fields {
-  file_id: Float
-  revision_id: Float
+  file_history_id: Float
 }
 
 """
 order by stddev_samp() on columns of table "files"
 """
 input files_stddev_samp_order_by {
-  file_id: order_by
-  revision_id: order_by
+  file_history_id: order_by
 }
 
 """aggregate sum on columns"""
 type files_sum_fields {
-  file_id: bigint
-  revision_id: Int
+  file_history_id: bigint
 }
 
 """
 order by sum() on columns of table "files"
 """
 input files_sum_order_by {
-  file_id: order_by
-  revision_id: order_by
-}
-
-"""
-update columns of table "files"
-"""
-enum files_update_column {
-  """column name"""
-  data
-
-  """column name"""
-  file_id
-
-  """column name"""
-  filename
-
-  """column name"""
-  revision_id
+  file_history_id: order_by
 }
 
 """aggregate var_pop on columns"""
 type files_var_pop_fields {
-  file_id: Float
-  revision_id: Float
+  file_history_id: Float
 }
 
 """
 order by var_pop() on columns of table "files"
 """
 input files_var_pop_order_by {
-  file_id: order_by
-  revision_id: order_by
+  file_history_id: order_by
 }
 
 """aggregate var_samp on columns"""
 type files_var_samp_fields {
-  file_id: Float
-  revision_id: Float
+  file_history_id: Float
 }
 
 """
 order by var_samp() on columns of table "files"
 """
 input files_var_samp_order_by {
-  file_id: order_by
-  revision_id: order_by
+  file_history_id: order_by
 }
 
 """aggregate variance on columns"""
 type files_variance_fields {
-  file_id: Float
-  revision_id: Float
+  file_history_id: Float
 }
 
 """
 order by variance() on columns of table "files"
 """
 input files_variance_order_by {
-  file_id: order_by
-  revision_id: order_by
+  file_history_id: order_by
 }
 
 """
@@ -1139,6 +1323,14 @@ type mutation_root {
   ): domain_users_mutation_response
 
   """
+  delete data from the table: "endpoints"
+  """
+  delete_endpoints(
+    """filter the rows which have to be deleted"""
+    where: endpoints_bool_exp!
+  ): endpoints_mutation_response
+
+  """
   delete data from the table: "file_history"
   """
   delete_file_history(
@@ -1147,20 +1339,12 @@ type mutation_root {
   ): file_history_mutation_response
 
   """
-  delete data from the table: "files"
+  delete data from the table: "rule_results"
   """
-  delete_files(
+  delete_rule_results(
     """filter the rows which have to be deleted"""
-    where: files_bool_exp!
-  ): files_mutation_response
-
-  """
-  delete data from the table: "revisions"
-  """
-  delete_revisions(
-    """filter the rows which have to be deleted"""
-    where: revisions_bool_exp!
-  ): revisions_mutation_response
+    where: rule_results_bool_exp!
+  ): rule_results_mutation_response
 
   """
   delete data from the table: "rules"
@@ -1169,6 +1353,14 @@ type mutation_root {
     """filter the rows which have to be deleted"""
     where: rules_bool_exp!
   ): rules_mutation_response
+
+  """
+  delete data from the table: "scans"
+  """
+  delete_scans(
+    """filter the rows which have to be deleted"""
+    where: scans_bool_exp!
+  ): scans_mutation_response
 
   """
   insert data into the table: "domain_users"
@@ -1182,6 +1374,17 @@ type mutation_root {
   ): domain_users_mutation_response
 
   """
+  insert data into the table: "endpoints"
+  """
+  insert_endpoints(
+    """the rows to be inserted"""
+    objects: [endpoints_insert_input!]!
+
+    """on conflict condition"""
+    on_conflict: endpoints_on_conflict
+  ): endpoints_mutation_response
+
+  """
   insert data into the table: "file_history"
   """
   insert_file_history(
@@ -1193,26 +1396,15 @@ type mutation_root {
   ): file_history_mutation_response
 
   """
-  insert data into the table: "files"
+  insert data into the table: "rule_results"
   """
-  insert_files(
+  insert_rule_results(
     """the rows to be inserted"""
-    objects: [files_insert_input!]!
+    objects: [rule_results_insert_input!]!
 
     """on conflict condition"""
-    on_conflict: files_on_conflict
-  ): files_mutation_response
-
-  """
-  insert data into the table: "revisions"
-  """
-  insert_revisions(
-    """the rows to be inserted"""
-    objects: [revisions_insert_input!]!
-
-    """on conflict condition"""
-    on_conflict: revisions_on_conflict
-  ): revisions_mutation_response
+    on_conflict: rule_results_on_conflict
+  ): rule_results_mutation_response
 
   """
   insert data into the table: "rules"
@@ -1224,6 +1416,17 @@ type mutation_root {
     """on conflict condition"""
     on_conflict: rules_on_conflict
   ): rules_mutation_response
+
+  """
+  insert data into the table: "scans"
+  """
+  insert_scans(
+    """the rows to be inserted"""
+    objects: [scans_insert_input!]!
+
+    """on conflict condition"""
+    on_conflict: scans_on_conflict
+  ): scans_mutation_response
 
   """
   update data of the table: "domain_users"
@@ -1259,33 +1462,25 @@ type mutation_root {
   ): domain_users_mutation_response
 
   """
+  update data of the table: "endpoints"
+  """
+  update_endpoints(
+    """increments the integer columns with given value of the filtered values"""
+    _inc: endpoints_inc_input
+
+    """sets the columns of the filtered rows to the given values"""
+    _set: endpoints_set_input
+
+    """filter the rows which have to be updated"""
+    where: endpoints_bool_exp!
+  ): endpoints_mutation_response
+
+  """
   update data of the table: "file_history"
   """
   update_file_history(
-    """append existing jsonb value of filtered columns with new jsonb value"""
-    _append: file_history_append_input
-
-    """
-    delete the field or element with specified path (for JSON arrays, negative integers count from the end)
-    """
-    _delete_at_path: file_history_delete_at_path_input
-
-    """
-    delete the array element with specified index (negative integers count from
-    the end). throws an error if top level container is not an array
-    """
-    _delete_elem: file_history_delete_elem_input
-
-    """
-    delete key/value pair or string element. key/value pairs are matched based on their key value
-    """
-    _delete_key: file_history_delete_key_input
-
     """increments the integer columns with given value of the filtered values"""
     _inc: file_history_inc_input
-
-    """prepend existing jsonb value of filtered columns with new jsonb value"""
-    _prepend: file_history_prepend_input
 
     """sets the columns of the filtered rows to the given values"""
     _set: file_history_set_input
@@ -1295,54 +1490,40 @@ type mutation_root {
   ): file_history_mutation_response
 
   """
-  update data of the table: "files"
+  update data of the table: "rule_results"
   """
-  update_files(
+  update_rule_results(
     """append existing jsonb value of filtered columns with new jsonb value"""
-    _append: files_append_input
+    _append: rule_results_append_input
 
     """
     delete the field or element with specified path (for JSON arrays, negative integers count from the end)
     """
-    _delete_at_path: files_delete_at_path_input
+    _delete_at_path: rule_results_delete_at_path_input
 
     """
     delete the array element with specified index (negative integers count from
     the end). throws an error if top level container is not an array
     """
-    _delete_elem: files_delete_elem_input
+    _delete_elem: rule_results_delete_elem_input
 
     """
     delete key/value pair or string element. key/value pairs are matched based on their key value
     """
-    _delete_key: files_delete_key_input
+    _delete_key: rule_results_delete_key_input
 
     """increments the integer columns with given value of the filtered values"""
-    _inc: files_inc_input
+    _inc: rule_results_inc_input
 
     """prepend existing jsonb value of filtered columns with new jsonb value"""
-    _prepend: files_prepend_input
+    _prepend: rule_results_prepend_input
 
     """sets the columns of the filtered rows to the given values"""
-    _set: files_set_input
+    _set: rule_results_set_input
 
     """filter the rows which have to be updated"""
-    where: files_bool_exp!
-  ): files_mutation_response
-
-  """
-  update data of the table: "revisions"
-  """
-  update_revisions(
-    """increments the integer columns with given value of the filtered values"""
-    _inc: revisions_inc_input
-
-    """sets the columns of the filtered rows to the given values"""
-    _set: revisions_set_input
-
-    """filter the rows which have to be updated"""
-    where: revisions_bool_exp!
-  ): revisions_mutation_response
+    where: rule_results_bool_exp!
+  ): rule_results_mutation_response
 
   """
   update data of the table: "rules"
@@ -1357,6 +1538,20 @@ type mutation_root {
     """filter the rows which have to be updated"""
     where: rules_bool_exp!
   ): rules_mutation_response
+
+  """
+  update data of the table: "scans"
+  """
+  update_scans(
+    """increments the integer columns with given value of the filtered values"""
+    _inc: scans_inc_input
+
+    """sets the columns of the filtered rows to the given values"""
+    _set: scans_set_input
+
+    """filter the rows which have to be updated"""
+    where: scans_bool_exp!
+  ): scans_mutation_response
 }
 
 """column ordering options"""
@@ -1424,6 +1619,49 @@ type query_root {
 
   """fetch data from the table: "domain_users" using primary key columns"""
   domain_users_by_pk(sid: String!): domain_users
+
+  """
+  fetch data from the table: "endpoints"
+  """
+  endpoints(
+    """distinct select on columns"""
+    distinct_on: [endpoints_select_column!]
+
+    """limit the nuber of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [endpoints_order_by!]
+
+    """filter the rows returned"""
+    where: endpoints_bool_exp
+  ): [endpoints!]!
+
+  """
+  fetch aggregated fields from the table: "endpoints"
+  """
+  endpoints_aggregate(
+    """distinct select on columns"""
+    distinct_on: [endpoints_select_column!]
+
+    """limit the nuber of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [endpoints_order_by!]
+
+    """filter the rows returned"""
+    where: endpoints_bool_exp
+  ): endpoints_aggregate!
+
+  """fetch data from the table: "endpoints" using primary key columns"""
+  endpoints_by_pk(endpoint_id: Int!): endpoints
 
   """
   fetch data from the table: "file_history"
@@ -1508,15 +1746,12 @@ type query_root {
     where: files_bool_exp
   ): files_aggregate!
 
-  """fetch data from the table: "files" using primary key columns"""
-  files_by_pk(file_id: bigint!): files
-
   """
-  fetch data from the table: "revisions"
+  fetch data from the table: "rule_results"
   """
-  revisions(
+  rule_results(
     """distinct select on columns"""
-    distinct_on: [revisions_select_column!]
+    distinct_on: [rule_results_select_column!]
 
     """limit the nuber of rows returned"""
     limit: Int
@@ -1525,18 +1760,18 @@ type query_root {
     offset: Int
 
     """sort the rows by one or more columns"""
-    order_by: [revisions_order_by!]
+    order_by: [rule_results_order_by!]
 
     """filter the rows returned"""
-    where: revisions_bool_exp
-  ): [revisions!]!
+    where: rule_results_bool_exp
+  ): [rule_results!]!
 
   """
-  fetch aggregated fields from the table: "revisions"
+  fetch aggregated fields from the table: "rule_results"
   """
-  revisions_aggregate(
+  rule_results_aggregate(
     """distinct select on columns"""
-    distinct_on: [revisions_select_column!]
+    distinct_on: [rule_results_select_column!]
 
     """limit the nuber of rows returned"""
     limit: Int
@@ -1545,14 +1780,14 @@ type query_root {
     offset: Int
 
     """sort the rows by one or more columns"""
-    order_by: [revisions_order_by!]
+    order_by: [rule_results_order_by!]
 
     """filter the rows returned"""
-    where: revisions_bool_exp
-  ): revisions_aggregate!
+    where: rule_results_bool_exp
+  ): rule_results_aggregate!
 
-  """fetch data from the table: "revisions" using primary key columns"""
-  revisions_by_pk(revision_id: Int!): revisions
+  """fetch data from the table: "rule_results" using primary key columns"""
+  rule_results_by_pk(rule_result_id: Int!): rule_results
 
   """
   fetch data from the table: "rules"
@@ -1596,18 +1831,13 @@ type query_root {
 
   """fetch data from the table: "rules" using primary key columns"""
   rules_by_pk(rule_id: Int!): rules
-}
 
-"""
-columns and relationships of "revisions"
-"""
-type revisions {
-  completed: timestamptz
-
-  """An array relationship"""
-  file_history(
+  """
+  fetch data from the table: "scans"
+  """
+  scans(
     """distinct select on columns"""
-    distinct_on: [file_history_select_column!]
+    distinct_on: [scans_select_column!]
 
     """limit the nuber of rows returned"""
     limit: Int
@@ -1616,16 +1846,18 @@ type revisions {
     offset: Int
 
     """sort the rows by one or more columns"""
-    order_by: [file_history_order_by!]
+    order_by: [scans_order_by!]
 
     """filter the rows returned"""
-    where: file_history_bool_exp
-  ): [file_history!]!
+    where: scans_bool_exp
+  ): [scans!]!
 
-  """An aggregated array relationship"""
-  file_history_aggregate(
+  """
+  fetch aggregated fields from the table: "scans"
+  """
+  scans_aggregate(
     """distinct select on columns"""
-    distinct_on: [file_history_select_column!]
+    distinct_on: [scans_select_column!]
 
     """limit the nuber of rows returned"""
     limit: Int
@@ -1634,342 +1866,420 @@ type revisions {
     offset: Int
 
     """sort the rows by one or more columns"""
-    order_by: [file_history_order_by!]
+    order_by: [scans_order_by!]
 
     """filter the rows returned"""
-    where: file_history_bool_exp
-  ): file_history_aggregate!
+    where: scans_bool_exp
+  ): scans_aggregate!
 
-  """An array relationship"""
-  files(
-    """distinct select on columns"""
-    distinct_on: [files_select_column!]
-
-    """limit the nuber of rows returned"""
-    limit: Int
-
-    """skip the first n rows. Use only with order_by"""
-    offset: Int
-
-    """sort the rows by one or more columns"""
-    order_by: [files_order_by!]
-
-    """filter the rows returned"""
-    where: files_bool_exp
-  ): [files!]!
-
-  """An aggregated array relationship"""
-  files_aggregate(
-    """distinct select on columns"""
-    distinct_on: [files_select_column!]
-
-    """limit the nuber of rows returned"""
-    limit: Int
-
-    """skip the first n rows. Use only with order_by"""
-    offset: Int
-
-    """sort the rows by one or more columns"""
-    order_by: [files_order_by!]
-
-    """filter the rows returned"""
-    where: files_bool_exp
-  ): files_aggregate!
-  revision_id: Int!
-  started: timestamptz!
+  """fetch data from the table: "scans" using primary key columns"""
+  scans_by_pk(scan_id: Int!): scans
 }
 
 """
-aggregated selection of "revisions"
+columns and relationships of "rule_results"
 """
-type revisions_aggregate {
-  aggregate: revisions_aggregate_fields
-  nodes: [revisions!]!
+type rule_results {
+  created_at: timestamptz!
+  data(
+    """JSON select path"""
+    path: String
+  ): jsonb
+
+  """An object relationship"""
+  file_history: file_history!
+  file_history_id: Int!
+
+  """An object relationship"""
+  rule: rules!
+  rule_id: Int!
+  rule_result_id: Int!
 }
 
 """
-aggregate fields of "revisions"
+aggregated selection of "rule_results"
 """
-type revisions_aggregate_fields {
-  avg: revisions_avg_fields
-  count(columns: [revisions_select_column!], distinct: Boolean): Int
-  max: revisions_max_fields
-  min: revisions_min_fields
-  stddev: revisions_stddev_fields
-  stddev_pop: revisions_stddev_pop_fields
-  stddev_samp: revisions_stddev_samp_fields
-  sum: revisions_sum_fields
-  var_pop: revisions_var_pop_fields
-  var_samp: revisions_var_samp_fields
-  variance: revisions_variance_fields
+type rule_results_aggregate {
+  aggregate: rule_results_aggregate_fields
+  nodes: [rule_results!]!
 }
 
 """
-order by aggregate values of table "revisions"
+aggregate fields of "rule_results"
 """
-input revisions_aggregate_order_by {
-  avg: revisions_avg_order_by
+type rule_results_aggregate_fields {
+  avg: rule_results_avg_fields
+  count(columns: [rule_results_select_column!], distinct: Boolean): Int
+  max: rule_results_max_fields
+  min: rule_results_min_fields
+  stddev: rule_results_stddev_fields
+  stddev_pop: rule_results_stddev_pop_fields
+  stddev_samp: rule_results_stddev_samp_fields
+  sum: rule_results_sum_fields
+  var_pop: rule_results_var_pop_fields
+  var_samp: rule_results_var_samp_fields
+  variance: rule_results_variance_fields
+}
+
+"""
+order by aggregate values of table "rule_results"
+"""
+input rule_results_aggregate_order_by {
+  avg: rule_results_avg_order_by
   count: order_by
-  max: revisions_max_order_by
-  min: revisions_min_order_by
-  stddev: revisions_stddev_order_by
-  stddev_pop: revisions_stddev_pop_order_by
-  stddev_samp: revisions_stddev_samp_order_by
-  sum: revisions_sum_order_by
-  var_pop: revisions_var_pop_order_by
-  var_samp: revisions_var_samp_order_by
-  variance: revisions_variance_order_by
+  max: rule_results_max_order_by
+  min: rule_results_min_order_by
+  stddev: rule_results_stddev_order_by
+  stddev_pop: rule_results_stddev_pop_order_by
+  stddev_samp: rule_results_stddev_samp_order_by
+  sum: rule_results_sum_order_by
+  var_pop: rule_results_var_pop_order_by
+  var_samp: rule_results_var_samp_order_by
+  variance: rule_results_variance_order_by
+}
+
+"""append existing jsonb value of filtered columns with new jsonb value"""
+input rule_results_append_input {
+  data: jsonb
 }
 
 """
-input type for inserting array relation for remote table "revisions"
+input type for inserting array relation for remote table "rule_results"
 """
-input revisions_arr_rel_insert_input {
-  data: [revisions_insert_input!]!
-  on_conflict: revisions_on_conflict
+input rule_results_arr_rel_insert_input {
+  data: [rule_results_insert_input!]!
+  on_conflict: rule_results_on_conflict
 }
 
 """aggregate avg on columns"""
-type revisions_avg_fields {
-  revision_id: Float
+type rule_results_avg_fields {
+  file_history_id: Float
+  rule_id: Float
+  rule_result_id: Float
 }
 
 """
-order by avg() on columns of table "revisions"
+order by avg() on columns of table "rule_results"
 """
-input revisions_avg_order_by {
-  revision_id: order_by
+input rule_results_avg_order_by {
+  file_history_id: order_by
+  rule_id: order_by
+  rule_result_id: order_by
 }
 
 """
-Boolean expression to filter rows from the table "revisions". All fields are combined with a logical 'AND'.
+Boolean expression to filter rows from the table "rule_results". All fields are combined with a logical 'AND'.
 """
-input revisions_bool_exp {
-  _and: [revisions_bool_exp]
-  _not: revisions_bool_exp
-  _or: [revisions_bool_exp]
-  completed: timestamptz_comparison_exp
+input rule_results_bool_exp {
+  _and: [rule_results_bool_exp]
+  _not: rule_results_bool_exp
+  _or: [rule_results_bool_exp]
+  created_at: timestamptz_comparison_exp
+  data: jsonb_comparison_exp
   file_history: file_history_bool_exp
-  files: files_bool_exp
-  revision_id: integer_comparison_exp
-  started: timestamptz_comparison_exp
+  file_history_id: integer_comparison_exp
+  rule: rules_bool_exp
+  rule_id: integer_comparison_exp
+  rule_result_id: integer_comparison_exp
 }
 
 """
-unique or primary key constraints on table "revisions"
+unique or primary key constraints on table "rule_results"
 """
-enum revisions_constraint {
+enum rule_results_constraint {
   """unique or primary key constraint"""
-  revisions_pkey
+  rule_results_file_history_id_rule_id_key
+
+  """unique or primary key constraint"""
+  rule_results_pkey
 }
 
 """
-input type for incrementing integer columne in table "revisions"
+delete the field or element with specified path (for JSON arrays, negative integers count from the end)
 """
-input revisions_inc_input {
-  revision_id: Int
+input rule_results_delete_at_path_input {
+  data: [String]
 }
 
 """
-input type for inserting data into table "revisions"
+delete the array element with specified index (negative integers count from the
+end). throws an error if top level container is not an array
 """
-input revisions_insert_input {
-  completed: timestamptz
-  file_history: file_history_arr_rel_insert_input
-  files: files_arr_rel_insert_input
-  revision_id: Int
-  started: timestamptz
+input rule_results_delete_elem_input {
+  data: Int
+}
+
+"""
+delete key/value pair or string element. key/value pairs are matched based on their key value
+"""
+input rule_results_delete_key_input {
+  data: String
+}
+
+"""
+input type for incrementing integer columne in table "rule_results"
+"""
+input rule_results_inc_input {
+  file_history_id: Int
+  rule_id: Int
+  rule_result_id: Int
+}
+
+"""
+input type for inserting data into table "rule_results"
+"""
+input rule_results_insert_input {
+  created_at: timestamptz
+  data: jsonb
+  file_history: file_history_obj_rel_insert_input
+  file_history_id: Int
+  rule: rules_obj_rel_insert_input
+  rule_id: Int
+  rule_result_id: Int
 }
 
 """aggregate max on columns"""
-type revisions_max_fields {
-  completed: timestamptz
-  revision_id: Int
-  started: timestamptz
+type rule_results_max_fields {
+  created_at: timestamptz
+  file_history_id: Int
+  rule_id: Int
+  rule_result_id: Int
 }
 
 """
-order by max() on columns of table "revisions"
+order by max() on columns of table "rule_results"
 """
-input revisions_max_order_by {
-  completed: order_by
-  revision_id: order_by
-  started: order_by
+input rule_results_max_order_by {
+  created_at: order_by
+  file_history_id: order_by
+  rule_id: order_by
+  rule_result_id: order_by
 }
 
 """aggregate min on columns"""
-type revisions_min_fields {
-  completed: timestamptz
-  revision_id: Int
-  started: timestamptz
+type rule_results_min_fields {
+  created_at: timestamptz
+  file_history_id: Int
+  rule_id: Int
+  rule_result_id: Int
 }
 
 """
-order by min() on columns of table "revisions"
+order by min() on columns of table "rule_results"
 """
-input revisions_min_order_by {
-  completed: order_by
-  revision_id: order_by
-  started: order_by
+input rule_results_min_order_by {
+  created_at: order_by
+  file_history_id: order_by
+  rule_id: order_by
+  rule_result_id: order_by
 }
 
 """
-response of any mutation on the table "revisions"
+response of any mutation on the table "rule_results"
 """
-type revisions_mutation_response {
+type rule_results_mutation_response {
   """number of affected rows by the mutation"""
   affected_rows: Int!
 
   """data of the affected rows by the mutation"""
-  returning: [revisions!]!
+  returning: [rule_results!]!
 }
 
 """
-input type for inserting object relation for remote table "revisions"
+input type for inserting object relation for remote table "rule_results"
 """
-input revisions_obj_rel_insert_input {
-  data: revisions_insert_input!
-  on_conflict: revisions_on_conflict
+input rule_results_obj_rel_insert_input {
+  data: rule_results_insert_input!
+  on_conflict: rule_results_on_conflict
 }
 
 """
-on conflict condition type for table "revisions"
+on conflict condition type for table "rule_results"
 """
-input revisions_on_conflict {
-  constraint: revisions_constraint!
-  update_columns: [revisions_update_column!]!
+input rule_results_on_conflict {
+  constraint: rule_results_constraint!
+  update_columns: [rule_results_update_column!]!
 }
 
 """
-ordering options when selecting data from "revisions"
+ordering options when selecting data from "rule_results"
 """
-input revisions_order_by {
-  completed: order_by
-  file_history_aggregate: file_history_aggregate_order_by
-  files_aggregate: files_aggregate_order_by
-  revision_id: order_by
-  started: order_by
+input rule_results_order_by {
+  created_at: order_by
+  data: order_by
+  file_history: file_history_order_by
+  file_history_id: order_by
+  rule: rules_order_by
+  rule_id: order_by
+  rule_result_id: order_by
+}
+
+"""prepend existing jsonb value of filtered columns with new jsonb value"""
+input rule_results_prepend_input {
+  data: jsonb
 }
 
 """
-select columns of table "revisions"
+select columns of table "rule_results"
 """
-enum revisions_select_column {
+enum rule_results_select_column {
   """column name"""
-  completed
+  created_at
 
   """column name"""
-  revision_id
+  data
 
   """column name"""
-  started
+  file_history_id
+
+  """column name"""
+  rule_id
+
+  """column name"""
+  rule_result_id
 }
 
 """
-input type for updating data in table "revisions"
+input type for updating data in table "rule_results"
 """
-input revisions_set_input {
-  completed: timestamptz
-  revision_id: Int
-  started: timestamptz
+input rule_results_set_input {
+  created_at: timestamptz
+  data: jsonb
+  file_history_id: Int
+  rule_id: Int
+  rule_result_id: Int
 }
 
 """aggregate stddev on columns"""
-type revisions_stddev_fields {
-  revision_id: Float
+type rule_results_stddev_fields {
+  file_history_id: Float
+  rule_id: Float
+  rule_result_id: Float
 }
 
 """
-order by stddev() on columns of table "revisions"
+order by stddev() on columns of table "rule_results"
 """
-input revisions_stddev_order_by {
-  revision_id: order_by
+input rule_results_stddev_order_by {
+  file_history_id: order_by
+  rule_id: order_by
+  rule_result_id: order_by
 }
 
 """aggregate stddev_pop on columns"""
-type revisions_stddev_pop_fields {
-  revision_id: Float
+type rule_results_stddev_pop_fields {
+  file_history_id: Float
+  rule_id: Float
+  rule_result_id: Float
 }
 
 """
-order by stddev_pop() on columns of table "revisions"
+order by stddev_pop() on columns of table "rule_results"
 """
-input revisions_stddev_pop_order_by {
-  revision_id: order_by
+input rule_results_stddev_pop_order_by {
+  file_history_id: order_by
+  rule_id: order_by
+  rule_result_id: order_by
 }
 
 """aggregate stddev_samp on columns"""
-type revisions_stddev_samp_fields {
-  revision_id: Float
+type rule_results_stddev_samp_fields {
+  file_history_id: Float
+  rule_id: Float
+  rule_result_id: Float
 }
 
 """
-order by stddev_samp() on columns of table "revisions"
+order by stddev_samp() on columns of table "rule_results"
 """
-input revisions_stddev_samp_order_by {
-  revision_id: order_by
+input rule_results_stddev_samp_order_by {
+  file_history_id: order_by
+  rule_id: order_by
+  rule_result_id: order_by
 }
 
 """aggregate sum on columns"""
-type revisions_sum_fields {
-  revision_id: Int
+type rule_results_sum_fields {
+  file_history_id: Int
+  rule_id: Int
+  rule_result_id: Int
 }
 
 """
-order by sum() on columns of table "revisions"
+order by sum() on columns of table "rule_results"
 """
-input revisions_sum_order_by {
-  revision_id: order_by
+input rule_results_sum_order_by {
+  file_history_id: order_by
+  rule_id: order_by
+  rule_result_id: order_by
 }
 
 """
-update columns of table "revisions"
+update columns of table "rule_results"
 """
-enum revisions_update_column {
+enum rule_results_update_column {
   """column name"""
-  completed
+  created_at
 
   """column name"""
-  revision_id
+  data
 
   """column name"""
-  started
+  file_history_id
+
+  """column name"""
+  rule_id
+
+  """column name"""
+  rule_result_id
 }
 
 """aggregate var_pop on columns"""
-type revisions_var_pop_fields {
-  revision_id: Float
+type rule_results_var_pop_fields {
+  file_history_id: Float
+  rule_id: Float
+  rule_result_id: Float
 }
 
 """
-order by var_pop() on columns of table "revisions"
+order by var_pop() on columns of table "rule_results"
 """
-input revisions_var_pop_order_by {
-  revision_id: order_by
+input rule_results_var_pop_order_by {
+  file_history_id: order_by
+  rule_id: order_by
+  rule_result_id: order_by
 }
 
 """aggregate var_samp on columns"""
-type revisions_var_samp_fields {
-  revision_id: Float
+type rule_results_var_samp_fields {
+  file_history_id: Float
+  rule_id: Float
+  rule_result_id: Float
 }
 
 """
-order by var_samp() on columns of table "revisions"
+order by var_samp() on columns of table "rule_results"
 """
-input revisions_var_samp_order_by {
-  revision_id: order_by
+input rule_results_var_samp_order_by {
+  file_history_id: order_by
+  rule_id: order_by
+  rule_result_id: order_by
 }
 
 """aggregate variance on columns"""
-type revisions_variance_fields {
-  revision_id: Float
+type rule_results_variance_fields {
+  file_history_id: Float
+  rule_id: Float
+  rule_result_id: Float
 }
 
 """
-order by variance() on columns of table "revisions"
+order by variance() on columns of table "rule_results"
 """
-input revisions_variance_order_by {
-  revision_id: order_by
+input rule_results_variance_order_by {
+  file_history_id: order_by
+  rule_id: order_by
+  rule_result_id: order_by
 }
 
 """
@@ -1981,6 +2291,42 @@ type rules {
   priority: Int!
   rule: String!
   rule_id: Int!
+
+  """An array relationship"""
+  rule_results(
+    """distinct select on columns"""
+    distinct_on: [rule_results_select_column!]
+
+    """limit the nuber of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [rule_results_order_by!]
+
+    """filter the rows returned"""
+    where: rule_results_bool_exp
+  ): [rule_results!]!
+
+  """An aggregated array relationship"""
+  rule_results_aggregate(
+    """distinct select on columns"""
+    distinct_on: [rule_results_select_column!]
+
+    """limit the nuber of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [rule_results_order_by!]
+
+    """filter the rows returned"""
+    where: rule_results_bool_exp
+  ): rule_results_aggregate!
 }
 
 """
@@ -2061,6 +2407,7 @@ input rules_bool_exp {
   priority: integer_comparison_exp
   rule: text_comparison_exp
   rule_id: integer_comparison_exp
+  rule_results: rule_results_bool_exp
 }
 
 """
@@ -2095,6 +2442,7 @@ input rules_insert_input {
   priority: Int
   rule: String
   rule_id: Int
+  rule_results: rule_results_arr_rel_insert_input
 }
 
 """aggregate max on columns"""
@@ -2169,6 +2517,7 @@ input rules_order_by {
   priority: order_by
   rule: order_by
   rule_id: order_by
+  rule_results_aggregate: rule_results_aggregate_order_by
 }
 
 """
@@ -2334,6 +2683,341 @@ input rules_variance_order_by {
   rule_id: order_by
 }
 
+"""
+columns and relationships of "scans"
+"""
+type scans {
+  completed_at: timestamptz
+
+  """An array relationship"""
+  file_histories(
+    """distinct select on columns"""
+    distinct_on: [file_history_select_column!]
+
+    """limit the nuber of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [file_history_order_by!]
+
+    """filter the rows returned"""
+    where: file_history_bool_exp
+  ): [file_history!]!
+
+  """An aggregated array relationship"""
+  file_histories_aggregate(
+    """distinct select on columns"""
+    distinct_on: [file_history_select_column!]
+
+    """limit the nuber of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [file_history_order_by!]
+
+    """filter the rows returned"""
+    where: file_history_bool_exp
+  ): file_history_aggregate!
+  scan_id: Int!
+  started_at: timestamptz!
+}
+
+"""
+aggregated selection of "scans"
+"""
+type scans_aggregate {
+  aggregate: scans_aggregate_fields
+  nodes: [scans!]!
+}
+
+"""
+aggregate fields of "scans"
+"""
+type scans_aggregate_fields {
+  avg: scans_avg_fields
+  count(columns: [scans_select_column!], distinct: Boolean): Int
+  max: scans_max_fields
+  min: scans_min_fields
+  stddev: scans_stddev_fields
+  stddev_pop: scans_stddev_pop_fields
+  stddev_samp: scans_stddev_samp_fields
+  sum: scans_sum_fields
+  var_pop: scans_var_pop_fields
+  var_samp: scans_var_samp_fields
+  variance: scans_variance_fields
+}
+
+"""
+order by aggregate values of table "scans"
+"""
+input scans_aggregate_order_by {
+  avg: scans_avg_order_by
+  count: order_by
+  max: scans_max_order_by
+  min: scans_min_order_by
+  stddev: scans_stddev_order_by
+  stddev_pop: scans_stddev_pop_order_by
+  stddev_samp: scans_stddev_samp_order_by
+  sum: scans_sum_order_by
+  var_pop: scans_var_pop_order_by
+  var_samp: scans_var_samp_order_by
+  variance: scans_variance_order_by
+}
+
+"""
+input type for inserting array relation for remote table "scans"
+"""
+input scans_arr_rel_insert_input {
+  data: [scans_insert_input!]!
+  on_conflict: scans_on_conflict
+}
+
+"""aggregate avg on columns"""
+type scans_avg_fields {
+  scan_id: Float
+}
+
+"""
+order by avg() on columns of table "scans"
+"""
+input scans_avg_order_by {
+  scan_id: order_by
+}
+
+"""
+Boolean expression to filter rows from the table "scans". All fields are combined with a logical 'AND'.
+"""
+input scans_bool_exp {
+  _and: [scans_bool_exp]
+  _not: scans_bool_exp
+  _or: [scans_bool_exp]
+  completed_at: timestamptz_comparison_exp
+  file_histories: file_history_bool_exp
+  scan_id: integer_comparison_exp
+  started_at: timestamptz_comparison_exp
+}
+
+"""
+unique or primary key constraints on table "scans"
+"""
+enum scans_constraint {
+  """unique or primary key constraint"""
+  scans_pkey
+}
+
+"""
+input type for incrementing integer columne in table "scans"
+"""
+input scans_inc_input {
+  scan_id: Int
+}
+
+"""
+input type for inserting data into table "scans"
+"""
+input scans_insert_input {
+  completed_at: timestamptz
+  file_histories: file_history_arr_rel_insert_input
+  scan_id: Int
+  started_at: timestamptz
+}
+
+"""aggregate max on columns"""
+type scans_max_fields {
+  completed_at: timestamptz
+  scan_id: Int
+  started_at: timestamptz
+}
+
+"""
+order by max() on columns of table "scans"
+"""
+input scans_max_order_by {
+  completed_at: order_by
+  scan_id: order_by
+  started_at: order_by
+}
+
+"""aggregate min on columns"""
+type scans_min_fields {
+  completed_at: timestamptz
+  scan_id: Int
+  started_at: timestamptz
+}
+
+"""
+order by min() on columns of table "scans"
+"""
+input scans_min_order_by {
+  completed_at: order_by
+  scan_id: order_by
+  started_at: order_by
+}
+
+"""
+response of any mutation on the table "scans"
+"""
+type scans_mutation_response {
+  """number of affected rows by the mutation"""
+  affected_rows: Int!
+
+  """data of the affected rows by the mutation"""
+  returning: [scans!]!
+}
+
+"""
+input type for inserting object relation for remote table "scans"
+"""
+input scans_obj_rel_insert_input {
+  data: scans_insert_input!
+  on_conflict: scans_on_conflict
+}
+
+"""
+on conflict condition type for table "scans"
+"""
+input scans_on_conflict {
+  constraint: scans_constraint!
+  update_columns: [scans_update_column!]!
+}
+
+"""
+ordering options when selecting data from "scans"
+"""
+input scans_order_by {
+  completed_at: order_by
+  file_histories_aggregate: file_history_aggregate_order_by
+  scan_id: order_by
+  started_at: order_by
+}
+
+"""
+select columns of table "scans"
+"""
+enum scans_select_column {
+  """column name"""
+  completed_at
+
+  """column name"""
+  scan_id
+
+  """column name"""
+  started_at
+}
+
+"""
+input type for updating data in table "scans"
+"""
+input scans_set_input {
+  completed_at: timestamptz
+  scan_id: Int
+  started_at: timestamptz
+}
+
+"""aggregate stddev on columns"""
+type scans_stddev_fields {
+  scan_id: Float
+}
+
+"""
+order by stddev() on columns of table "scans"
+"""
+input scans_stddev_order_by {
+  scan_id: order_by
+}
+
+"""aggregate stddev_pop on columns"""
+type scans_stddev_pop_fields {
+  scan_id: Float
+}
+
+"""
+order by stddev_pop() on columns of table "scans"
+"""
+input scans_stddev_pop_order_by {
+  scan_id: order_by
+}
+
+"""aggregate stddev_samp on columns"""
+type scans_stddev_samp_fields {
+  scan_id: Float
+}
+
+"""
+order by stddev_samp() on columns of table "scans"
+"""
+input scans_stddev_samp_order_by {
+  scan_id: order_by
+}
+
+"""aggregate sum on columns"""
+type scans_sum_fields {
+  scan_id: Int
+}
+
+"""
+order by sum() on columns of table "scans"
+"""
+input scans_sum_order_by {
+  scan_id: order_by
+}
+
+"""
+update columns of table "scans"
+"""
+enum scans_update_column {
+  """column name"""
+  completed_at
+
+  """column name"""
+  scan_id
+
+  """column name"""
+  started_at
+}
+
+"""aggregate var_pop on columns"""
+type scans_var_pop_fields {
+  scan_id: Float
+}
+
+"""
+order by var_pop() on columns of table "scans"
+"""
+input scans_var_pop_order_by {
+  scan_id: order_by
+}
+
+"""aggregate var_samp on columns"""
+type scans_var_samp_fields {
+  scan_id: Float
+}
+
+"""
+order by var_samp() on columns of table "scans"
+"""
+input scans_var_samp_order_by {
+  scan_id: order_by
+}
+
+"""aggregate variance on columns"""
+type scans_variance_fields {
+  scan_id: Float
+}
+
+"""
+order by variance() on columns of table "scans"
+"""
+input scans_variance_order_by {
+  scan_id: order_by
+}
+
 """subscription root"""
 type subscription_root {
   """
@@ -2378,6 +3062,49 @@ type subscription_root {
 
   """fetch data from the table: "domain_users" using primary key columns"""
   domain_users_by_pk(sid: String!): domain_users
+
+  """
+  fetch data from the table: "endpoints"
+  """
+  endpoints(
+    """distinct select on columns"""
+    distinct_on: [endpoints_select_column!]
+
+    """limit the nuber of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [endpoints_order_by!]
+
+    """filter the rows returned"""
+    where: endpoints_bool_exp
+  ): [endpoints!]!
+
+  """
+  fetch aggregated fields from the table: "endpoints"
+  """
+  endpoints_aggregate(
+    """distinct select on columns"""
+    distinct_on: [endpoints_select_column!]
+
+    """limit the nuber of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [endpoints_order_by!]
+
+    """filter the rows returned"""
+    where: endpoints_bool_exp
+  ): endpoints_aggregate!
+
+  """fetch data from the table: "endpoints" using primary key columns"""
+  endpoints_by_pk(endpoint_id: Int!): endpoints
 
   """
   fetch data from the table: "file_history"
@@ -2462,15 +3189,12 @@ type subscription_root {
     where: files_bool_exp
   ): files_aggregate!
 
-  """fetch data from the table: "files" using primary key columns"""
-  files_by_pk(file_id: bigint!): files
-
   """
-  fetch data from the table: "revisions"
+  fetch data from the table: "rule_results"
   """
-  revisions(
+  rule_results(
     """distinct select on columns"""
-    distinct_on: [revisions_select_column!]
+    distinct_on: [rule_results_select_column!]
 
     """limit the nuber of rows returned"""
     limit: Int
@@ -2479,18 +3203,18 @@ type subscription_root {
     offset: Int
 
     """sort the rows by one or more columns"""
-    order_by: [revisions_order_by!]
+    order_by: [rule_results_order_by!]
 
     """filter the rows returned"""
-    where: revisions_bool_exp
-  ): [revisions!]!
+    where: rule_results_bool_exp
+  ): [rule_results!]!
 
   """
-  fetch aggregated fields from the table: "revisions"
+  fetch aggregated fields from the table: "rule_results"
   """
-  revisions_aggregate(
+  rule_results_aggregate(
     """distinct select on columns"""
-    distinct_on: [revisions_select_column!]
+    distinct_on: [rule_results_select_column!]
 
     """limit the nuber of rows returned"""
     limit: Int
@@ -2499,14 +3223,14 @@ type subscription_root {
     offset: Int
 
     """sort the rows by one or more columns"""
-    order_by: [revisions_order_by!]
+    order_by: [rule_results_order_by!]
 
     """filter the rows returned"""
-    where: revisions_bool_exp
-  ): revisions_aggregate!
+    where: rule_results_bool_exp
+  ): rule_results_aggregate!
 
-  """fetch data from the table: "revisions" using primary key columns"""
-  revisions_by_pk(revision_id: Int!): revisions
+  """fetch data from the table: "rule_results" using primary key columns"""
+  rule_results_by_pk(rule_result_id: Int!): rule_results
 
   """
   fetch data from the table: "rules"
@@ -2550,6 +3274,49 @@ type subscription_root {
 
   """fetch data from the table: "rules" using primary key columns"""
   rules_by_pk(rule_id: Int!): rules
+
+  """
+  fetch data from the table: "scans"
+  """
+  scans(
+    """distinct select on columns"""
+    distinct_on: [scans_select_column!]
+
+    """limit the nuber of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [scans_order_by!]
+
+    """filter the rows returned"""
+    where: scans_bool_exp
+  ): [scans!]!
+
+  """
+  fetch aggregated fields from the table: "scans"
+  """
+  scans_aggregate(
+    """distinct select on columns"""
+    distinct_on: [scans_select_column!]
+
+    """limit the nuber of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [scans_order_by!]
+
+    """filter the rows returned"""
+    where: scans_bool_exp
+  ): scans_aggregate!
+
+  """fetch data from the table: "scans" using primary key columns"""
+  scans_by_pk(scan_id: Int!): scans
 }
 
 """

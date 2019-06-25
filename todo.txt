@@ -5,7 +5,7 @@ front: view only relevant rules and their files
 front: view violating (unparsed) files
 try to make history snapshots easier and less triggery
 try to not actually delete file records
-implement rule editor
+implement rule editor (convert templates to regex?)
 add basic reporting and search
 implement per-user settings
 implement mounting dir for each user
@@ -32,3 +32,9 @@ Use cases:
 create an api endpoint for endpoint crud => new table for endpoints
 // need to derive destination from mounted dir
 ?only store relative path within destination
+
+split tables into view (select * from history group by filename where scan=max(scan)) and history
+create a constraint on history that every file should have a parent scan and remove triggers
+
+
+
