@@ -1,25 +1,40 @@
 {
+    "go.formatTool": "goimports",
     "go.useLanguageServer": true,
-    // "go.formatTool": "gofmt",
-    // "go.vetOnSave": "off",
-    // "go.lintFlags": ["--disable-all", "--enable=errcheck"],
-    // "go.buildOnSave": "off",
     "[go]": {
-        "editor.formatOnSave": false
+        "editor.snippetSuggestions": "none",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": true
+        }
     },
-    "go.languageServerExperimentalFeatures": {
-        "format": true,
-        "autoComplete": true,
-        "rename": false,
-        "goToDefinition": true,
-        "hover": true,
-        "signatureHelp": true,
-        "goToTypeDefinition": true,
-        "goToImplementation": true,
-        "documentSymbols": true,
-        "workspaceSymbols": true,
-        "findReferences": true,
-        "diagnostics": false
+    "gopls": {
+        "usePlaceholders": true // add parameter placeholders when completing a function
     },
-    "go.useCodeSnippetsOnFunctionSuggest": true
+    "files.eol": "\n", // formatting only supports LF line endings
+
+
+    // "go.useLanguageServer": true,
+    // // "go.formatTool": "gofmt",
+    // // "go.vetOnSave": "off",
+    // // "go.lintFlags": ["--disable-all", "--enable=errcheck"],
+    // // "go.buildOnSave": "off",
+    // "[go]": {
+    //     "editor.formatOnSave": false
+    // },
+    // "go.languageServerExperimentalFeatures": {
+    //     "format": true,
+    //     "autoComplete": true,
+    //     "rename": false,
+    //     "goToDefinition": true,
+    //     "hover": true,
+    //     "signatureHelp": true,
+    //     "goToTypeDefinition": true,
+    //     "goToImplementation": true,
+    //     "documentSymbols": true,
+    //     "workspaceSymbols": true,
+    //     "findReferences": true,
+    //     "diagnostics": false
+    // },
+    // "go.useCodeSnippetsOnFunctionSuggest": true
 }
