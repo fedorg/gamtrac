@@ -115,7 +115,9 @@ func (gg *GamtracGql) RunCreateScan() (*int, error) {
 
 	query := `
 	mutation {
-		insert_scans(objects: [{}]) {
+		insert_scans(objects: [{
+			completed_at: null
+		}]) {
 		  returning {
 			scan_id
 		  }
@@ -129,6 +131,42 @@ func (gg *GamtracGql) RunCreateScan() (*int, error) {
 
 	return &(respData.CreateScan.Scans[0].ScanID), nil
 }
+
+
+func (gg *GamtracGql) RunFinishScan(scan int) (*Scans, error) {
+	var respData struct {
+		FinishScan struct {
+			Scans []Scans `json:"returning"`
+		} `json:"update_scans"`
+	}
+
+	query := `
+	mutation ($scan_id: Int!) {
+		update_scans (where: {scan_id :{_eq: $scan_id}},
+		_set: {completed_at: "now()" }) {
+		  returning {
+			scan_id
+			started_at
+			completed_at
+			file_histories_aggregate {
+			  aggregate {
+				 count
+			  }
+			}
+		  }
+		}
+	  }
+	`
+	vars := map[string]interface{}{
+		"scan_id": scan,
+	}
+	if err := gg.Run(query, &respData, vars); err != nil {
+		return nil, err
+	}
+
+	return &(respData.FinishScan.Scans[0]), nil
+}
+
 
 func (gg *GamtracGql) RunInsertDomainUsers(users []DomainUsers) error {
 	// var respData struct {

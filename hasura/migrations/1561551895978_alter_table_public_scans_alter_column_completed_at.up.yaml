@@ -1,0 +1,10 @@
+- args:
+    sql: ALTER TABLE "public"."scans" ALTER COLUMN "completed_at" TYPE timestamptz;
+  type: run_sql
+- args:
+    sql: ALTER TABLE ONLY "public"."scans" ALTER COLUMN "completed_at" SET DEFAULT
+      now();
+  type: run_sql
+- args:
+    sql: COMMENT ON COLUMN "public"."scans"."completed_at" IS ''
+  type: run_sql

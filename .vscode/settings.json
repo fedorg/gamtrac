@@ -1,11 +1,23 @@
 {
+    "go.delveConfig": {
+        "dlvLoadConfig": {
+            "followPointers": true,
+            "maxVariableRecurse": 1,
+            "maxStringLen": 32000,
+            "maxArrayValues": 7000,
+            "maxStructFields": -1
+        },
+        "apiVersion": 2,
+        "useApiV1": false,
+        "showGlobalVariables": true
+    },
     "go.formatTool": "goimports",
     "go.useLanguageServer": true,
     "[go]": {
-        "editor.snippetSuggestions": "none",
-        "editor.formatOnSave": true,
+        "editor.snippetSuggestions": "inline",
+        "editor.formatOnSave": false,
         "editor.codeActionsOnSave": {
-            "source.organizeImports": true
+            "source.organizeImports": false
         }
     },
     "gopls": {

@@ -1,10 +1,13 @@
 package api
-import ("time")
+
+import (
+	"time"
+)
 
 // columns and relationships of "rule_results"
 type RuleResults struct {
-	CreatedAt time.Time `json:"created_at,omitempty"`
-	Data      *string   `json:"data,omitempty"`
+	CreatedAt *time.Time              `json:"created_at,omitempty"`
+	Data      map[string]interface{} `json:"data,omitempty"`
 	// An object relationship
 	FileHistory   *FileHistory `json:"file_history,omitempty"`
 	FileHistoryID int          `json:"file_history_id,omitempty"`
@@ -17,7 +20,7 @@ type RuleResults struct {
 // columns and relationships of "file_history"
 type FileHistory struct {
 	Action        string    `json:"action,omitempty"`
-	ActionTstamp  time.Time `json:"action_tstamp,omitempty"`
+	ActionTstamp  *time.Time `json:"action_tstamp,omitempty"`
 	FileHistoryID int64     `json:"file_history_id,omitempty"`
 	Filename      string    `json:"filename,omitempty"`
 	// An object relationship

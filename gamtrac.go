@@ -12,26 +12,21 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
-	"strings"
-	"encoding/json"
-	"github.com/r3labs/diff"
 
 	"github.com/fatih/structs"
-
+	"github.com/r3labs/diff"
 )
-
-const USE_HASH = false
 
 type HashDigest = api.HashDigest
 type FileError = api.FileError
 type AnnotResult = api.AnnotResult
 
-
 type MountedPath struct {
 	Destination string
-	MountedAt    string
+	MountedAt   string
 	Mounted     bool
 }
 
@@ -58,7 +53,7 @@ var test_rules = []string{
 	"R:\\DAR\\LAM\\Screening group\\<Заказчик>\\1_Результаты, протоколы, отчеты\\<Измеряемый параметр>_<Метод анализа>\\<Проект>\\"}
 
 func computeHash(path string) (*HashDigest, error) {
-	if !USE_HASH {
+	if !(os.Getenv("GAMTRAC_HASH_FILE_CONTENTS") > "0") {
 		return nil, nil
 	}
 	f, err := os.Open(path)
@@ -146,9 +141,15 @@ func collectResults(annots <-chan *AnnotResult, out chan<- map[string]*AnnotResu
 	out <- ret
 }
 
-func PushFileUpdates(gg *api.GamtracGql, scan int, oldFiles []api.FileHistory, rslts map[string]*AnnotResult) ([]api.FileHistory, error) {
-	newFiles := make([]api.FileHistory, len(rslts))
-	i := 0
+type FilePropDiff map[string]interface{}
+
+func GenerateChangelist(scan int, oldFiles []api.FileHistory, rslts map[string]*AnnotResult) ([]api.FileHistory, error) {
+	new := map[string]*api.FileHistory{}
+	old := map[string]*api.FileHistory{}
+	for i, r := range oldFiles {
+		old[r.Filename] = &oldFiles[i]
+	}
+
 	for filename, r := range rslts {
 		var data map[string]interface{}
 		data = structs.Map(r)
@@ -159,127 +160,103 @@ func PushFileUpdates(gg *api.GamtracGql, scan int, oldFiles []api.FileHistory, r
 		} else {
 			data["Hash"] = nil
 		}
-		newFiles[i] = api.FileHistory{
-			Filename:   filename,
-			ScanID:     scan,
-			RuleResults: nil,//[]*api.RuleResults {{ Data: data }},
-			Action: "C",
-			PrevID: 0,
+		new[filename] = &api.FileHistory{
+			Filename:    filename,
+			ScanID:      scan,
+			RuleResults: []*api.RuleResults{{Data: data}},
 		}
+	}
+	// see what files have changed and put these into action var
+	actions := map[string]string{}
+	changedProps := map[string]FilePropDiff{}
+
+	getChangedProps := func(a, b interface{}) (FilePropDiff, error) {
+		changes, err := diff.Diff(a, b)
+		if err != nil {
+			return nil, err
+		}
+		ret := FilePropDiff{}
+		for _, c := range changes {
+			key := c.Path[0]
+			ret[key] = c.To
+		}
+		return ret, nil
+	}
+
+	for fn := range new {
+		actions[fn] = "C"
+	}
+	for fn := range old {
+		actions[fn] = "D"
+	}
+	for fn := range actions {
+		oldf, isold := old[fn]
+		newf, isnew := new[fn]
+		if !(isold && isnew) {
+			continue // created and delted files are already accounted for
+		}
+		actions[fn] = ""
+		// TODO: this only scans the first result
+		changes, err := getChangedProps(&oldf.RuleResults[0].Data, &newf.RuleResults[0].Data)
+		if err != nil {
+			return nil, err
+		}
+		if len(changes) > 0 {
+			actions[fn] = "M"
+			changedProps[fn] = changes
+		}
+	}
+	retMap := map[string]api.FileHistory{}
+	for fn, act := range actions {
+		item := api.FileHistory{
+			Filename: fn,
+			ScanID:   scan,
+			Action:   act,
+			RuleResults: nil,
+		}
+		// shallow copy, don't reuse old RuleResults
+		switch act {
+		case "C":
+			item.PrevID = 0
+			item.RuleResults = new[fn].RuleResults
+		case "D":
+			item.PrevID = int(old[fn].FileHistoryID)
+		case "M":
+			item.PrevID = int(old[fn].FileHistoryID)
+			item.RuleResults = new[fn].RuleResults
+		default:
+			continue
+		}
+		retMap[fn] = item
+	}
+	// TODO: return diff results
+	ret := make([]api.FileHistory, len(retMap))
+	i := 0
+	for _, f := range retMap {
+		ret[i] = f
 		i++
 	}
+	return ret, nil
+}
 
-	changes, err := CompareFileLists(oldFiles, newFiles)
-	if err != nil {
-		return nil, err
-	}
-	ctext, err := json.MarshalIndent(changes.CreatedInNew, "", " ")
-	dtext, err := json.MarshalIndent(changes.RemovedFromOld, "", " ")
-	mtext, err := json.MarshalIndent(changes.ModifiedInNew, "", " ")
-	fmt.Printf("Created:\n%v\n", string(ctext))
-	fmt.Printf("Removed:\n%v\n", string(dtext))
-	fmt.Printf("Changed:\n%v\n", string(mtext))
+func PushFileUpdates(gg *api.GamtracGql, changes []api.FileHistory) ([]api.FileHistory, error) {
 
-	insertedFiles, err := gg.RunInsertFileHistory(newFiles)
+	// TODO: rule_results should have a rule_type and rule_parser_ver
+	// unchanged files should not be treated differently
+	insertedFiles, err := gg.RunInsertFileHistory(changes)
 	if err != nil {
 		return nil, err
 	}
 	// patch returned file ids back into new files
-	if len(insertedFiles) != len(newFiles) {
-		return nil, fmt.Errorf("invalid number of file records inserted: expected %v, got %v", len(newFiles), len(insertedFiles))
+	if len(insertedFiles) != len(changes) {
+		return nil, fmt.Errorf("invalid number of file records inserted: expected %v, got %v", len(changes), len(insertedFiles))
 	}
 	for i, fileid := range insertedFiles {
-		newFiles[i].FileHistoryID = fileid
+		changes[i].FileHistoryID = fileid
 	}
 	// TODO: this function has shit error api
-	return newFiles, nil
+	return changes, nil
 }
-
-
-type FilePropDiff struct {
-	NewPropValues map[string]string
-}
-
-type FileDiffResults struct {
-	CreatedInNew   map[string]*api.FileHistory
-	RemovedFromOld map[string]*api.FileHistory
-	ModifiedInNew  map[string]FilePropDiff
-}
-
-func ListToMap(list []api.FileHistory) map[string]*api.FileHistory {
-	ret := map[string]*api.FileHistory{}
-	for i, r := range list {
-		ret[r.Filename] = &list[i]
-	}
-	return ret
-}
-
-func CompareFileLists(oldFiles []api.FileHistory, newFiles []api.FileHistory) (*FileDiffResults, error) {
-	old, new := ListToMap(oldFiles), ListToMap(newFiles)
-	CreatedInNew, RemovedFromOld := map[string]*api.FileHistory{}, map[string]*api.FileHistory{}
-	// go over old and detect deletes
-	for filename, f := range old {
-		if _, ok := new[filename]; !ok {
-			RemovedFromOld[filename] = f
-		}
-	}
-	// go over new and detect creates
-	for filename, f := range new {
-		if _, ok := old[filename]; !ok {
-			CreatedInNew[filename] = f
-		}
-	}
-
-	
-
-	// fillStruct := func(data map[string]interface{}, recv interface{}) error {
-	// 	bytes, err := json.Marshal(data)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	err = json.Unmarshal(bytes, recv)
-	// 	return err
-	// }
-
-	// detect changes:
-	//	over new:
-	//		if in new: skip (leaves intersection)
-	//		unmarshal data
-	//		compare data
-	//		if compare non identical, detect modified
-	modified := map[string]FilePropDiff{}
-	for filename := range new {
-		of, inOld := old[filename]
-		nf, inNew := new[filename]
-		if !(inNew && inOld) {
-			continue
-		}
-		changes, err := diff.Diff(of, nf)
-		if err != nil {
-			return nil, err
-		}
-		newProps := map[string]string{}
-		for _, c := range changes {
-			key := c.Path[0]
-			bytes, err := json.Marshal(c.To)
-			if err != nil {
-				return nil, err
-			}
-			val := string(bytes)
-			newProps[key] = val
-		}
-		if len(newProps) > 0 {
-			modified[filename] = FilePropDiff{NewPropValues: newProps}
-		}
-		// outputs: deletes, creates, modified
-	}
-	return &FileDiffResults{
-		CreatedInNew:   CreatedInNew,
-		RemovedFromOld: RemovedFromOld,
-		ModifiedInNew:  modified,
-	}, nil
-}
-
 
 type AppCredentials struct {
 	domain      string
@@ -361,7 +338,11 @@ func rulesGetRemote(gg *api.GamtracGql) []rules.RuleMatcher {
 				fmt.Fprintf(os.Stderr, "Cannot read remote rules: %e\n", err)
 				return []rules.RuleMatcher{}
 			}
-			if rule.Ignore {ignoredMatchers = append(ignoredMatchers, *rm)} else {matchers = append(matchers, *rm)}
+			if rule.Ignore {
+				ignoredMatchers = append(ignoredMatchers, *rm)
+			} else {
+				matchers = append(matchers, *rm)
+			}
 		}
 		// place ignored rules first so that they take precedence
 		ret = append(ret, ignoredMatchers...)
@@ -371,7 +352,7 @@ func rulesGetRemote(gg *api.GamtracGql) []rules.RuleMatcher {
 }
 
 func triggerScan(remotePaths []string, ac AppCredentials) (int, error) {
-	gg := api.NewGamtracGql(ac.gqlEndpoint, 10000, true)
+	gg := api.NewGamtracGql(ac.gqlEndpoint, 10000, os.Getenv("GAMTRAC_DEBUG_GQL") > "0")
 	// import (prisma "gamtrac/prisma/generated/prisma-client")
 	// import "context"
 	// ctx := context.Background()
@@ -381,7 +362,7 @@ func triggerScan(remotePaths []string, ac AppCredentials) (int, error) {
 	// rev1, err := db.CreateScan(prisma.ScanCreateInput{}).Exec(ctx)
 	// println(rev1)
 
-	paths, unmountAll, err := mountPaths(remotePaths, false, ac)
+	paths, unmountAll, err := mountPaths(remotePaths, os.Getenv("GAMTRAC_ALLOW_LOCAL") > "0", ac)
 	defer unmountAll()
 	if err != nil {
 		return -1, err
@@ -392,7 +373,7 @@ func triggerScan(remotePaths []string, ac AppCredentials) (int, error) {
 		return -1, err
 	}
 	oldFiles, err := gg.RunFetchFiles()
-	
+
 	epoch := *rev
 	fmt.Printf("Epoch %v\n\n", epoch)
 
@@ -430,17 +411,17 @@ func triggerScan(remotePaths []string, ac AppCredentials) (int, error) {
 				fmt.Fprintf(os.Stderr, "Error: %e\n", err)
 				return err
 			}
-			// append a slash at the end of directories
-			if (f.IsDir() && !strings.HasSuffix(relpath, "/")) {
-				relpath = relpath + "/"
-			}
 			destpath := filepath.Join(p.Destination, relpath)
 			// slashes look hella weird with this but this is needed to normalize rules
 			destpath = filepath.ToSlash(destpath)
+			// append a slash at the end of directories
+			if f.IsDir() && !strings.HasSuffix(destpath, "/") {
+				destpath = destpath + "/"
+			}
 			mp := MountedPath{
 				Destination: destpath,
-				MountedAt: path,
-				Mounted: false,
+				MountedAt:   path,
+				Mounted:     false,
 			}
 			func() { inputs <- AnnotItem{path: mp, fileInfo: f, queuedAt: time.Now(), rules: ruleMatchers} }()
 			return nil
@@ -451,18 +432,25 @@ func triggerScan(remotePaths []string, ac AppCredentials) (int, error) {
 	wg.Wait()
 	close(output)
 	rslt := <-done
-	newFiles, err := PushFileUpdates(gg, int(epoch), oldFiles, rslt)
+	changes, err := GenerateChangelist(int(epoch), oldFiles, rslt)
+	if err != nil {
+		return *rev, err
+	}
+	newFiles, err := PushFileUpdates(gg, changes)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Cannot update files on server:\n%v\n", err)
 	}
 	for _, nf := range newFiles {
 		fmt.Printf("%6d| %v\n\n", nf.FileHistoryID, nf.Filename)
 	}
-	fmt.Fprintf(os.Stderr, "Finished epoch: %v\n", epoch)
+	scanInfo, err := gg.RunFinishScan(*rev)
+	if err != nil {
+		return *rev, err
+	}
+	fmt.Fprintf(os.Stderr, "Finished epoch: %v\n%v\n", epoch, scanInfo)
 
 	return *rev, nil
 }
-
 
 func fetchDomainUsers(ac AppCredentials) ([]api.DomainUsers, error) {
 	// rslt := map[string]AnnotResult{}
@@ -529,7 +517,7 @@ func main() {
 	for {
 		rev, err := triggerScan(argPaths, ac)
 		if err != nil {
-			fmt.Printf("Could not finish scan %v\n", rev)
+			fmt.Printf("Could not finish scan %v: %v\n", rev, err)
 		} else {
 			fmt.Printf("Scan %v created successfully\n", rev)
 		}
