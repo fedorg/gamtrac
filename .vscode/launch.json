@@ -13,7 +13,7 @@
             "envFile": "${workspaceFolder}/scanner.env",
             "env": {
                 "GAMTRAC_ALLOW_LOCAL": "1",
-                "GAMTRAC_DEBUG_GQL": "1",
+                "GAMTRAC_DEBUG_GQL": "0",
                 "GAMTRAC_HASH_FILE_CONTENTS": "1"
             },
             "args": ["H:/user/Arduino/libraries"]

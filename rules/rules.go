@@ -28,16 +28,16 @@ type tokenMatch struct {
 }
 
 type RuleMatch struct {
-	full    bool
-	matches []tokenMatch
-	lastPos int
-	err     error
+	Full    bool
+	Matches []tokenMatch
+	LastPos int
+	Err     error
 	Rule    *RuleMatcher
 }
 
 func (r *RuleMatch) AsMap() map[string]string {
 	ret := make(map[string]string)
-	for _, m := range r.matches {
+	for _, m := range r.Matches {
 		if !m.token.isConst {
 			ret[strings.Trim(m.token.descr, "<>")] = m.match
 		}
@@ -148,10 +148,10 @@ func MatchAllRules(filename string, rules []RuleMatcher) []RuleMatch {
 		tokens, err := matcher.Match(filename)
 		lastpos := getLastPos(tokens)
 		matchResult := RuleMatch{
-			full:    len(filename) == lastpos,
-			err:     err,
-			lastPos: lastpos,
-			matches: tokens,
+			Full:    len(filename) == lastpos,
+			Err:     err,
+			LastPos: lastpos,
+			Matches: tokens,
 			Rule:    &matcher,
 		}
 		matches = append(matches, matchResult)
@@ -164,11 +164,11 @@ func FindBestRuleIndex(parsed []RuleMatch) int {
 	ret := -1
 	lastPos := 0
 	for i, rm := range parsed {
-		if rm.lastPos > lastPos {
-			lastPos = rm.lastPos
+		if rm.LastPos > lastPos {
+			lastPos = rm.LastPos
 			ret = i
 		}
-		if rm.full { // should short-circuit on the first rule => rule order matters
+		if rm.Full { // should short-circuit on the first rule => rule order matters
 			return i
 		}
 	}
@@ -178,7 +178,7 @@ func FindBestRuleIndex(parsed []RuleMatch) int {
 func ParseFilename(filename string, rules []RuleMatcher, onlyFull bool) *RuleMatch {
 	matches := MatchAllRules(filename, rules)
 	i := FindBestRuleIndex(matches)
-	if (i == -1) || (onlyFull && !matches[i].full) {
+	if (i == -1) || (onlyFull && !matches[i].Full) {
 		return nil
 	}
 	return &matches[i]

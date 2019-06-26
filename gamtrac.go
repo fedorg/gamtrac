@@ -87,9 +87,11 @@ func processFile(inputs <-chan AnnotItem, output chan<- *AnnotResult, wg *sync.W
 		mountedAt := input.path.MountedAt
 		info := input.fileInfo
 		// fmt.Println("Processing file: ", mountedAt)
+		errors := []FileError{}
+		// matches := rules.MatchAllRules(destination, input.rules)
+		// i := FindBestRuleIndex(matches)
 		var rule *string
 		var ruleVars map[string]string
-		errors := []FileError{}
 		parsed := rules.ParseFilename(destination, input.rules, true)
 		if parsed != nil {
 			rule = &parsed.Rule.Rule
@@ -209,9 +211,9 @@ func GenerateChangelist(scan int, oldFiles []api.FileHistory, rslts map[string]*
 	retMap := map[string]api.FileHistory{}
 	for fn, act := range actions {
 		item := api.FileHistory{
-			Filename: fn,
-			ScanID:   scan,
-			Action:   act,
+			Filename:    fn,
+			ScanID:      scan,
+			Action:      act,
 			RuleResults: nil,
 		}
 		// shallow copy, don't reuse old RuleResults
@@ -237,25 +239,6 @@ func GenerateChangelist(scan int, oldFiles []api.FileHistory, rslts map[string]*
 		i++
 	}
 	return ret, nil
-}
-
-func PushFileUpdates(gg *api.GamtracGql, changes []api.FileHistory) ([]api.FileHistory, error) {
-
-	// TODO: rule_results should have a rule_type and rule_parser_ver
-	// unchanged files should not be treated differently
-	insertedFiles, err := gg.RunInsertFileHistory(changes)
-	if err != nil {
-		return nil, err
-	}
-	// patch returned file ids back into new files
-	if len(insertedFiles) != len(changes) {
-		return nil, fmt.Errorf("invalid number of file records inserted: expected %v, got %v", len(changes), len(insertedFiles))
-	}
-	for i, fileid := range insertedFiles {
-		changes[i].FileHistoryID = fileid
-	}
-	// TODO: this function has shit error api
-	return changes, nil
 }
 
 type AppCredentials struct {
@@ -323,9 +306,12 @@ func rulesGetLocal() []rules.RuleMatcher {
 	return ruleMatchers
 }
 
-func rulesGetRemote(gg *api.GamtracGql) []rules.RuleMatcher {
+// returns rules and corresponding rule_id
+// TODO: remove second return, it is broken on matching rule strings (ie ignore + non-ignore)
+func rulesGetRemote(gg *api.GamtracGql) ([]rules.RuleMatcher, map[string]int) {
 	// fetch rules from the database
 	ret := []rules.RuleMatcher{}
+	idMap := map[string]int{}
 	remoteRules, err := gg.RunFetchRules()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Cannot read remote rules: %e\n", err)
@@ -334,9 +320,10 @@ func rulesGetRemote(gg *api.GamtracGql) []rules.RuleMatcher {
 		ignoredMatchers := []rules.RuleMatcher{}
 		for _, rule := range remoteRules {
 			rm, err := rules.NewMatcher(rule.Rule)
+			idMap[rm.Rule] = rule.RuleID
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Cannot read remote rules: %e\n", err)
-				return []rules.RuleMatcher{}
+				return []rules.RuleMatcher{}, map[string]int{}
 			}
 			if rule.Ignore {
 				ignoredMatchers = append(ignoredMatchers, *rm)
@@ -348,7 +335,7 @@ func rulesGetRemote(gg *api.GamtracGql) []rules.RuleMatcher {
 		ret = append(ret, ignoredMatchers...)
 		ret = append(ret, matchers...)
 	}
-	return ret
+	return ret, idMap
 }
 
 func triggerScan(remotePaths []string, ac AppCredentials) (int, error) {
@@ -378,7 +365,7 @@ func triggerScan(remotePaths []string, ac AppCredentials) (int, error) {
 	fmt.Printf("Epoch %v\n\n", epoch)
 
 	localRules := rulesGetLocal()
-	remoteRules := rulesGetRemote(gg)
+	remoteRules, ruleMap := rulesGetRemote(gg)
 	ruleMatchers := append(localRules, remoteRules...)
 	if len(ruleMatchers) == 0 {
 		err = fmt.Errorf("failed to load at least one rule")
@@ -436,18 +423,45 @@ func triggerScan(remotePaths []string, ac AppCredentials) (int, error) {
 	if err != nil {
 		return *rev, err
 	}
-	newFiles, err := PushFileUpdates(gg, changes)
+	// patch rule_ids back into changes
+	// TODO: remove this hack and pass rule_id through
+	for _, c := range changes {
+		if (c.RuleResults == nil) || (len(c.RuleResults) == 0) {
+			continue
+		}
+		for _, rr := range c.RuleResults {
+			ruleID := -1
+			patt, ok := rr.Data["Pattern"]
+			if !ok {
+				patt = ""
+			}
+			strpatt, ok := patt.(string)
+			if !ok {
+				strpatt = ""
+			}
+			ruleID, ok = ruleMap[strpatt]
+			if !ok {
+				ruleID = -1
+			}
+			rr.RuleID = ruleID
+		}
+	}
+
+	newFileIds, err := gg.RunInsertFileHistory(changes)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Cannot update files on server:\n%v\n", err)
+		return *rev, fmt.Errorf("Cannot update files on server:\n%v\n", err)
 	}
-	for _, nf := range newFiles {
-		fmt.Printf("%6d| %v\n\n", nf.FileHistoryID, nf.Filename)
+	if len(newFileIds) != len(changes) {
+		return *rev, fmt.Errorf("invalid number of file records inserted: expected %v, got %v", len(changes), len(newFileIds))
 	}
+	// for _, nf := range fileIds {
+	// 	fmt.Printf("%6d| %v\n\n", nf.FileHistoryID, nf.Filename)
+	// }
 	scanInfo, err := gg.RunFinishScan(*rev)
 	if err != nil {
 		return *rev, err
 	}
-	fmt.Fprintf(os.Stderr, "Finished epoch: %v\n%v\n", epoch, scanInfo)
+	fmt.Printf("Finished epoch: %v\n%v\n", epoch, *scanInfo.FileHistoriesAggregate.Aggregate.Count)
 
 	return *rev, nil
 }

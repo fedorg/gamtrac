@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"time"
+	"encoding/json"
 
 	"github.com/machinebox/graphql"
 )
@@ -75,6 +76,35 @@ func (gg *GamtracGql) RunFetchFiles() ([]FileHistory, error) {
 	return respData.FileHistories, nil
 }
 
+
+func fillStruct(data interface{}, recv interface{}) error {
+	bytes, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	err = json.Unmarshal(bytes, recv)
+	return err
+}
+
+type JSON map[string]interface{}
+
+func ToNestedInsert(props []string, objects []interface{}) []JSON {
+	// Hasura needs a bit of reshaping for nested inserts, namely
+	// what normally would be a [rule_results] it needs a {data: [rule_results], on_conflict: {...}}
+	toInsert := []JSON{}
+	for _, c := range objects {
+		ret := JSON{}
+		fillStruct(&c, &ret)
+		for _, prop := range props {
+			if ret[prop] != nil {
+				ret[prop] = JSON{"data": ret[prop]}
+			}
+		}
+		toInsert = append(toInsert, ret)
+	}
+	return toInsert
+}
+
 func (gg *GamtracGql) RunInsertFileHistory(files []FileHistory) ([]int64, error) {
 	var respData struct {
 		InsertFileHistory struct {
@@ -82,6 +112,12 @@ func (gg *GamtracGql) RunInsertFileHistory(files []FileHistory) ([]int64, error)
 		} `json:"insert_file_history"`
 	}
 
+	pfiles := make([]interface{}, len(files))
+	for i := range files {
+		pfiles[i] = &files[i]
+	}
+
+	insertData := ToNestedInsert([]string{"rule_results"}, pfiles)
 	query := `
 	mutation ($files: [file_history_insert_input!]!) {
 		insert_file_history(objects: $files)
@@ -94,7 +130,7 @@ func (gg *GamtracGql) RunInsertFileHistory(files []FileHistory) ([]int64, error)
 	`
 
 	vars := map[string]interface{}{
-		"files": files,
+		"files": insertData,
 	}
 	if err := gg.Run(query, &respData, vars); err != nil {
 		return nil, err
@@ -102,6 +138,36 @@ func (gg *GamtracGql) RunInsertFileHistory(files []FileHistory) ([]int64, error)
 	ret := []int64{}
 	for _, fh := range respData.InsertFileHistory.FileHistories {
 		ret = append(ret, fh.FileHistoryID)
+	}
+	return ret, nil
+}
+
+
+func (gg *GamtracGql) RunInsertRuleResults(results []*RuleResults) ([]int, error) {
+	var respData struct {
+		InsertRuleResults struct {
+			RuleResults []RuleResults `json:"returning"`
+		} `json:"insert_rule_results"`
+	}
+	query := `
+	mutation ($results: [rule_results_insert_input!]!) {
+		insert_rule_results(objects: $results)
+		{
+		  returning {
+			rule_results_id
+		  }
+		}
+	}
+	`
+	vars := map[string]interface{}{
+		"results": results,
+	}
+	if err := gg.Run(query, &respData, vars); err != nil {
+		return nil, err
+	}
+	ret := []int{}
+	for _, rr := range respData.InsertRuleResults.RuleResults {
+		ret = append(ret, rr.RuleResultID)
 	}
 	return ret, nil
 }
@@ -131,7 +197,6 @@ func (gg *GamtracGql) RunCreateScan() (*int, error) {
 
 	return &(respData.CreateScan.Scans[0].ScanID), nil
 }
-
 
 func (gg *GamtracGql) RunFinishScan(scan int) (*Scans, error) {
 	var respData struct {
@@ -166,7 +231,6 @@ func (gg *GamtracGql) RunFinishScan(scan int) (*Scans, error) {
 
 	return &(respData.FinishScan.Scans[0]), nil
 }
-
 
 func (gg *GamtracGql) RunInsertDomainUsers(users []DomainUsers) error {
 	// var respData struct {
