@@ -1,0 +1,6 @@
+- args:
+    relationship: rule_results
+    table:
+      name: files
+      schema: public
+  type: drop_relationship

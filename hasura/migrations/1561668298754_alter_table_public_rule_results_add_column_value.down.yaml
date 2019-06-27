@@ -1,0 +1,3 @@
+- args:
+    sql: ALTER TABLE "public"."rule_results" DROP COLUMN "value"
+  type: run_sql

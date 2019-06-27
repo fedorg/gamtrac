@@ -1,11 +1,13 @@
-
 package api
 
 import (
-	"time"
-	"os"
-	"fmt"
 	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"github.com/fatih/structs"
+	"os"
+	"strings"
+	"time"
 )
 
 type HashDigest struct {
@@ -18,56 +20,85 @@ func (h HashDigest) String() string {
 	// return fmt.Sprintf(base64.StdEncoding.EncodeToString(h.Value))
 }
 
+func (h *HashDigest) UnmarshalJSON(b []byte) error {
+	var s string
+	if err := json.Unmarshal(b, &s); err != nil {
+		return err
+	}
+	chonk := strings.SplitN(s, ":", 2)
+	if len(chonk) < 2 {
+		return fmt.Errorf("Invalid hash format")
+	}
+	h.Algorithm = chonk[0]
+	h.Value = []byte(chonk[1])
+	return nil
+}
+
+func (h HashDigest) MarshalJSON() ([]byte, error) {
+	return []byte(h.String()), nil
+}
+
 type FileError struct {
 	// Filename  string
 	Error     error
 	CreatedAt time.Time
 }
 
-type AnnotResult struct {
-	Path        string             `diff:"Path,identifier"`// required
-	MountDir    string             `diff:"-" json:"-"`
-	Size        int64              `diff:"Size"`// required
-	Mode        os.FileMode        `diff:"Mode"`// required
-	ModTime     time.Time          `diff:"ModTime"`// required
-	QueuedAt    time.Time          `diff:"-"`// required
-	ProcessedAt time.Time          `diff:"-"`// required
-	IsDir       bool               `diff:"IsDir"`// required
-	OwnerUID    *string            `diff:"OwnerUID"`// optional
-	Hash        *HashDigest        `diff:"Hash"`// optional
-	Pattern     *string            `diff:"Pattern"`// optional
-	Parsed      *map[string]string `diff:"Parsed"`// optional
-	Errors      []FileError        `diff:"-" json:"-"`// required
+// utility convert anything to api.RuleResult
+func ToJSONMap(r interface{}) (map[string]string, error) {
+	data := structs.Map(r)
+	ret := map[string]string{}
+	for key, value := range data {
+		js, err := json.Marshal(value)
+		if err != nil {
+			return nil, err
+		}
+		ret[key] = string(js)
+	}
+	return ret, nil
 }
 
-func NewAnnotResult(
-	Path string,
-	MountDir string,
-	Size int64,
-	Mode os.FileMode,
-	ModTime time.Time,
-	QueuedAt time.Time,
-	ProcessedAt time.Time,
-	IsDir bool,
-	OwnerUID *string,
-	Hash *HashDigest,
-	Pattern *string,
-	Parsed *map[string]string,
-	Errors []FileError,
-) AnnotResult {
-	return AnnotResult{
-		Path:        Path,
-		MountDir: MountDir,
-		Size:        Size,
-		Mode:        Mode,
-		ModTime:     ModTime,
-		QueuedAt:    QueuedAt,
-		ProcessedAt: ProcessedAt,
-		IsDir:       IsDir,
-		OwnerUID:    OwnerUID,
-		Hash:        Hash,
-		Pattern:     Pattern,
-		Parsed:      Parsed,
-		Errors:      Errors,
+type AnnotResult struct {
+	Path        string             `diff:"Path,identifier"` // required
+	RuleID      int                `diff:"RuleID"`
+	MountDir    string             `diff:"-" json:"-"`
+	Size        int64              `diff:"Size"`     // required
+	Mode        os.FileMode        `diff:"Mode"`     // required
+	ModTime     time.Time          `diff:"ModTime"`  // required
+	QueuedAt    time.Time          `diff:"-"`        // required
+	ProcessedAt time.Time          `diff:"-"`        // required
+	IsDir       bool               `diff:"IsDir"`    // required
+	OwnerUID    *string            `diff:"OwnerUID"` // optional
+	Hash        *HashDigest        `diff:"Hash"`     // optional
+	Pattern     *string            `diff:"Pattern"`  // optional
+	Parsed      *map[string]string `diff:"Parsed"`   // optional
+	Errors      []FileError        `diff:"-"`        // required
+}
+
+// TODO: create interface for converting this to RuleResults
+// should contain RuleID and toJSONMap
+
+func (a AnnotResult) ToJSONMap() map[string]string {
+	if ret, err := ToJSONMap(a); err != nil {
+		panic(err)
+	} else {
+		return ret
 	}
+}
+
+func (a AnnotResult) ToRuleInsert() []*RuleResults {
+	ruleid := a.RuleID
+	ret := []*RuleResults{}
+	for tag, value := range a.ToJSONMap() {
+		if (tag == "Path" || tag == "MountDir" || tag == "RuleID" || tag == "Pattern") {
+			continue
+		}
+		rr := RuleResults{
+			Tag:           &tag,
+			Value:         &value,
+			RuleID:        &ruleid,
+		}
+		ret = append(ret, &rr)
+	}
+	return ret
 }

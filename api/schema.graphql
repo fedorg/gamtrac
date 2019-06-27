@@ -1493,30 +1493,8 @@ type mutation_root {
   update data of the table: "rule_results"
   """
   update_rule_results(
-    """append existing jsonb value of filtered columns with new jsonb value"""
-    _append: rule_results_append_input
-
-    """
-    delete the field or element with specified path (for JSON arrays, negative integers count from the end)
-    """
-    _delete_at_path: rule_results_delete_at_path_input
-
-    """
-    delete the array element with specified index (negative integers count from
-    the end). throws an error if top level container is not an array
-    """
-    _delete_elem: rule_results_delete_elem_input
-
-    """
-    delete key/value pair or string element. key/value pairs are matched based on their key value
-    """
-    _delete_key: rule_results_delete_key_input
-
     """increments the integer columns with given value of the filtered values"""
     _inc: rule_results_inc_input
-
-    """prepend existing jsonb value of filtered columns with new jsonb value"""
-    _prepend: rule_results_prepend_input
 
     """sets the columns of the filtered rows to the given values"""
     _set: rule_results_set_input
@@ -1881,10 +1859,6 @@ columns and relationships of "rule_results"
 """
 type rule_results {
   created_at: timestamptz!
-  data(
-    """JSON select path"""
-    path: String
-  ): jsonb
 
   """An object relationship"""
   file_history: file_history!
@@ -1894,6 +1868,8 @@ type rule_results {
   rule: rules!
   rule_id: Int!
   rule_result_id: Int!
+  tag: String!
+  value: String!
 }
 
 """
@@ -1938,11 +1914,6 @@ input rule_results_aggregate_order_by {
   variance: rule_results_variance_order_by
 }
 
-"""append existing jsonb value of filtered columns with new jsonb value"""
-input rule_results_append_input {
-  data: jsonb
-}
-
 """
 input type for inserting array relation for remote table "rule_results"
 """
@@ -1975,12 +1946,13 @@ input rule_results_bool_exp {
   _not: rule_results_bool_exp
   _or: [rule_results_bool_exp]
   created_at: timestamptz_comparison_exp
-  data: jsonb_comparison_exp
   file_history: file_history_bool_exp
   file_history_id: integer_comparison_exp
   rule: rules_bool_exp
   rule_id: integer_comparison_exp
   rule_result_id: integer_comparison_exp
+  tag: text_comparison_exp
+  value: text_comparison_exp
 }
 
 """
@@ -1988,32 +1960,10 @@ unique or primary key constraints on table "rule_results"
 """
 enum rule_results_constraint {
   """unique or primary key constraint"""
-  rule_results_file_history_id_rule_id_key
+  rule_results_file_history_id_tag_key
 
   """unique or primary key constraint"""
   rule_results_pkey
-}
-
-"""
-delete the field or element with specified path (for JSON arrays, negative integers count from the end)
-"""
-input rule_results_delete_at_path_input {
-  data: [String]
-}
-
-"""
-delete the array element with specified index (negative integers count from the
-end). throws an error if top level container is not an array
-"""
-input rule_results_delete_elem_input {
-  data: Int
-}
-
-"""
-delete key/value pair or string element. key/value pairs are matched based on their key value
-"""
-input rule_results_delete_key_input {
-  data: String
 }
 
 """
@@ -2030,12 +1980,13 @@ input type for inserting data into table "rule_results"
 """
 input rule_results_insert_input {
   created_at: timestamptz
-  data: jsonb
   file_history: file_history_obj_rel_insert_input
   file_history_id: Int
   rule: rules_obj_rel_insert_input
   rule_id: Int
   rule_result_id: Int
+  tag: String
+  value: String
 }
 
 """aggregate max on columns"""
@@ -2044,6 +1995,8 @@ type rule_results_max_fields {
   file_history_id: Int
   rule_id: Int
   rule_result_id: Int
+  tag: String
+  value: String
 }
 
 """
@@ -2054,6 +2007,8 @@ input rule_results_max_order_by {
   file_history_id: order_by
   rule_id: order_by
   rule_result_id: order_by
+  tag: order_by
+  value: order_by
 }
 
 """aggregate min on columns"""
@@ -2062,6 +2017,8 @@ type rule_results_min_fields {
   file_history_id: Int
   rule_id: Int
   rule_result_id: Int
+  tag: String
+  value: String
 }
 
 """
@@ -2072,6 +2029,8 @@ input rule_results_min_order_by {
   file_history_id: order_by
   rule_id: order_by
   rule_result_id: order_by
+  tag: order_by
+  value: order_by
 }
 
 """
@@ -2106,17 +2065,13 @@ ordering options when selecting data from "rule_results"
 """
 input rule_results_order_by {
   created_at: order_by
-  data: order_by
   file_history: file_history_order_by
   file_history_id: order_by
   rule: rules_order_by
   rule_id: order_by
   rule_result_id: order_by
-}
-
-"""prepend existing jsonb value of filtered columns with new jsonb value"""
-input rule_results_prepend_input {
-  data: jsonb
+  tag: order_by
+  value: order_by
 }
 
 """
@@ -2127,9 +2082,6 @@ enum rule_results_select_column {
   created_at
 
   """column name"""
-  data
-
-  """column name"""
   file_history_id
 
   """column name"""
@@ -2137,6 +2089,12 @@ enum rule_results_select_column {
 
   """column name"""
   rule_result_id
+
+  """column name"""
+  tag
+
+  """column name"""
+  value
 }
 
 """
@@ -2144,10 +2102,11 @@ input type for updating data in table "rule_results"
 """
 input rule_results_set_input {
   created_at: timestamptz
-  data: jsonb
   file_history_id: Int
   rule_id: Int
   rule_result_id: Int
+  tag: String
+  value: String
 }
 
 """aggregate stddev on columns"""
@@ -2222,9 +2181,6 @@ enum rule_results_update_column {
   created_at
 
   """column name"""
-  data
-
-  """column name"""
   file_history_id
 
   """column name"""
@@ -2232,6 +2188,12 @@ enum rule_results_update_column {
 
   """column name"""
   rule_result_id
+
+  """column name"""
+  tag
+
+  """column name"""
+  value
 }
 
 """aggregate var_pop on columns"""
@@ -2327,6 +2289,7 @@ type rules {
     """filter the rows returned"""
     where: rule_results_bool_exp
   ): rule_results_aggregate!
+  rule_type: String!
 }
 
 """
@@ -2408,6 +2371,7 @@ input rules_bool_exp {
   rule: text_comparison_exp
   rule_id: integer_comparison_exp
   rule_results: rule_results_bool_exp
+  rule_type: text_comparison_exp
 }
 
 """
@@ -2443,6 +2407,7 @@ input rules_insert_input {
   rule: String
   rule_id: Int
   rule_results: rule_results_arr_rel_insert_input
+  rule_type: String
 }
 
 """aggregate max on columns"""
@@ -2451,6 +2416,7 @@ type rules_max_fields {
   priority: Int
   rule: String
   rule_id: Int
+  rule_type: String
 }
 
 """
@@ -2461,6 +2427,7 @@ input rules_max_order_by {
   priority: order_by
   rule: order_by
   rule_id: order_by
+  rule_type: order_by
 }
 
 """aggregate min on columns"""
@@ -2469,6 +2436,7 @@ type rules_min_fields {
   priority: Int
   rule: String
   rule_id: Int
+  rule_type: String
 }
 
 """
@@ -2479,6 +2447,7 @@ input rules_min_order_by {
   priority: order_by
   rule: order_by
   rule_id: order_by
+  rule_type: order_by
 }
 
 """
@@ -2518,6 +2487,7 @@ input rules_order_by {
   rule: order_by
   rule_id: order_by
   rule_results_aggregate: rule_results_aggregate_order_by
+  rule_type: order_by
 }
 
 """
@@ -2538,6 +2508,9 @@ enum rules_select_column {
 
   """column name"""
   rule_id
+
+  """column name"""
+  rule_type
 }
 
 """
@@ -2549,6 +2522,7 @@ input rules_set_input {
   priority: Int
   rule: String
   rule_id: Int
+  rule_type: String
 }
 
 """aggregate stddev on columns"""
@@ -2633,6 +2607,9 @@ enum rules_update_column {
 
   """column name"""
   rule_id
+
+  """column name"""
+  rule_type
 }
 
 """aggregate var_pop on columns"""

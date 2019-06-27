@@ -922,11 +922,6 @@ type RuleResultsAggregateOrderBy struct {
 	Variance   *RuleResultsVarianceOrderBy   `json:"variance"`
 }
 
-// append existing jsonb value of filtered columns with new jsonb value
-type RuleResultsAppendInput struct {
-	Data *string `json:"data"`
-}
-
 // input type for inserting array relation for remote table "rule_results"
 type RuleResultsArrRelInsertInput struct {
 	Data       []*RuleResultsInsertInput `json:"data"`
@@ -953,28 +948,13 @@ type RuleResultsBoolExp struct {
 	_not          *RuleResultsBoolExp       `json:"_not"`
 	_or           []*RuleResultsBoolExp     `json:"_or"`
 	CreatedAt     *TimestamptzComparisonExp `json:"created_at"`
-	Data          *JsonbComparisonExp       `json:"data"`
 	FileHistory   *FileHistoryBoolExp       `json:"file_history"`
 	FileHistoryID *IntegerComparisonExp     `json:"file_history_id"`
 	Rule          *RulesBoolExp             `json:"rule"`
 	RuleID        *IntegerComparisonExp     `json:"rule_id"`
 	RuleResultID  *IntegerComparisonExp     `json:"rule_result_id"`
-}
-
-// delete the field or element with specified path (for JSON arrays, negative integers count from the end)
-type RuleResultsDeleteAtPathInput struct {
-	Data []*string `json:"data"`
-}
-
-// delete the array element with specified index (negative integers count from the
-// end). throws an error if top level container is not an array
-type RuleResultsDeleteElemInput struct {
-	Data *int `json:"data"`
-}
-
-// delete key/value pair or string element. key/value pairs are matched based on their key value
-type RuleResultsDeleteKeyInput struct {
-	Data *string `json:"data"`
+	Tag           *TextComparisonExp        `json:"tag"`
+	Value         *TextComparisonExp        `json:"value"`
 }
 
 // input type for incrementing integer columne in table "rule_results"
@@ -987,12 +967,13 @@ type RuleResultsIncInput struct {
 // input type for inserting data into table "rule_results"
 type RuleResultsInsertInput struct {
 	CreatedAt     *time.Time                    `json:"created_at"`
-	Data          *string                       `json:"data"`
 	FileHistory   *FileHistoryObjRelInsertInput `json:"file_history"`
 	FileHistoryID *int                          `json:"file_history_id"`
 	Rule          *RulesObjRelInsertInput       `json:"rule"`
 	RuleID        *int                          `json:"rule_id"`
 	RuleResultID  *int                          `json:"rule_result_id"`
+	Tag           *string                       `json:"tag"`
+	Value         *string                       `json:"value"`
 }
 
 // aggregate max on columns
@@ -1001,6 +982,8 @@ type RuleResultsMaxFields struct {
 	FileHistoryID *int       `json:"file_history_id"`
 	RuleID        *int       `json:"rule_id"`
 	RuleResultID  *int       `json:"rule_result_id"`
+	Tag           *string    `json:"tag"`
+	Value         *string    `json:"value"`
 }
 
 // order by max() on columns of table "rule_results"
@@ -1009,6 +992,8 @@ type RuleResultsMaxOrderBy struct {
 	FileHistoryID *OrderBy `json:"file_history_id"`
 	RuleID        *OrderBy `json:"rule_id"`
 	RuleResultID  *OrderBy `json:"rule_result_id"`
+	Tag           *OrderBy `json:"tag"`
+	Value         *OrderBy `json:"value"`
 }
 
 // aggregate min on columns
@@ -1017,6 +1002,8 @@ type RuleResultsMinFields struct {
 	FileHistoryID *int       `json:"file_history_id"`
 	RuleID        *int       `json:"rule_id"`
 	RuleResultID  *int       `json:"rule_result_id"`
+	Tag           *string    `json:"tag"`
+	Value         *string    `json:"value"`
 }
 
 // order by min() on columns of table "rule_results"
@@ -1025,6 +1012,8 @@ type RuleResultsMinOrderBy struct {
 	FileHistoryID *OrderBy `json:"file_history_id"`
 	RuleID        *OrderBy `json:"rule_id"`
 	RuleResultID  *OrderBy `json:"rule_result_id"`
+	Tag           *OrderBy `json:"tag"`
+	Value         *OrderBy `json:"value"`
 }
 
 // response of any mutation on the table "rule_results"
@@ -1050,26 +1039,23 @@ type RuleResultsOnConflict struct {
 // ordering options when selecting data from "rule_results"
 type RuleResultsOrderBy struct {
 	CreatedAt     *OrderBy            `json:"created_at"`
-	Data          *OrderBy            `json:"data"`
 	FileHistory   *FileHistoryOrderBy `json:"file_history"`
 	FileHistoryID *OrderBy            `json:"file_history_id"`
 	Rule          *RulesOrderBy       `json:"rule"`
 	RuleID        *OrderBy            `json:"rule_id"`
 	RuleResultID  *OrderBy            `json:"rule_result_id"`
-}
-
-// prepend existing jsonb value of filtered columns with new jsonb value
-type RuleResultsPrependInput struct {
-	Data *string `json:"data"`
+	Tag           *OrderBy            `json:"tag"`
+	Value         *OrderBy            `json:"value"`
 }
 
 // input type for updating data in table "rule_results"
 type RuleResultsSetInput struct {
 	CreatedAt     *time.Time `json:"created_at"`
-	Data          *string    `json:"data"`
 	FileHistoryID *int       `json:"file_history_id"`
 	RuleID        *int       `json:"rule_id"`
 	RuleResultID  *int       `json:"rule_result_id"`
+	Tag           *string    `json:"tag"`
+	Value         *string    `json:"value"`
 }
 
 // aggregate stddev on columns
@@ -1181,6 +1167,7 @@ type Rules struct {
 	RuleResults []*RuleResults `json:"rule_results"`
 	// An aggregated array relationship
 	RuleResultsAggregate *RuleResultsAggregate `json:"rule_results_aggregate"`
+	RuleType             string                `json:"rule_type"`
 }
 
 // aggregated selection of "rules"
@@ -1250,6 +1237,7 @@ type RulesBoolExp struct {
 	Rule        *TextComparisonExp    `json:"rule"`
 	RuleID      *IntegerComparisonExp `json:"rule_id"`
 	RuleResults *RuleResultsBoolExp   `json:"rule_results"`
+	RuleType    *TextComparisonExp    `json:"rule_type"`
 }
 
 // input type for incrementing integer columne in table "rules"
@@ -1267,6 +1255,7 @@ type RulesInsertInput struct {
 	Rule        *string                       `json:"rule"`
 	RuleID      *int                          `json:"rule_id"`
 	RuleResults *RuleResultsArrRelInsertInput `json:"rule_results"`
+	RuleType    *string                       `json:"rule_type"`
 }
 
 // aggregate max on columns
@@ -1275,6 +1264,7 @@ type RulesMaxFields struct {
 	Priority  *int    `json:"priority"`
 	Rule      *string `json:"rule"`
 	RuleID    *int    `json:"rule_id"`
+	RuleType  *string `json:"rule_type"`
 }
 
 // order by max() on columns of table "rules"
@@ -1283,6 +1273,7 @@ type RulesMaxOrderBy struct {
 	Priority  *OrderBy `json:"priority"`
 	Rule      *OrderBy `json:"rule"`
 	RuleID    *OrderBy `json:"rule_id"`
+	RuleType  *OrderBy `json:"rule_type"`
 }
 
 // aggregate min on columns
@@ -1291,6 +1282,7 @@ type RulesMinFields struct {
 	Priority  *int    `json:"priority"`
 	Rule      *string `json:"rule"`
 	RuleID    *int    `json:"rule_id"`
+	RuleType  *string `json:"rule_type"`
 }
 
 // order by min() on columns of table "rules"
@@ -1299,6 +1291,7 @@ type RulesMinOrderBy struct {
 	Priority  *OrderBy `json:"priority"`
 	Rule      *OrderBy `json:"rule"`
 	RuleID    *OrderBy `json:"rule_id"`
+	RuleType  *OrderBy `json:"rule_type"`
 }
 
 // response of any mutation on the table "rules"
@@ -1329,6 +1322,7 @@ type RulesOrderBy struct {
 	Rule                 *OrderBy                     `json:"rule"`
 	RuleID               *OrderBy                     `json:"rule_id"`
 	RuleResultsAggregate *RuleResultsAggregateOrderBy `json:"rule_results_aggregate"`
+	RuleType             *OrderBy                     `json:"rule_type"`
 }
 
 // input type for updating data in table "rules"
@@ -1338,6 +1332,7 @@ type RulesSetInput struct {
 	Priority  *int    `json:"priority"`
 	Rule      *string `json:"rule"`
 	RuleID    *int    `json:"rule_id"`
+	RuleType  *string `json:"rule_type"`
 }
 
 // aggregate stddev on columns
@@ -2283,19 +2278,19 @@ type RuleResultsConstraint string
 
 const (
 	// unique or primary key constraint
-	RuleResultsConstraintRuleResultsFileHistoryIDRuleIDKey RuleResultsConstraint = "rule_results_file_history_id_rule_id_key"
+	RuleResultsConstraintRuleResultsFileHistoryIDTagKey RuleResultsConstraint = "rule_results_file_history_id_tag_key"
 	// unique or primary key constraint
 	RuleResultsConstraintRuleResultsPkey RuleResultsConstraint = "rule_results_pkey"
 )
 
 var AllRuleResultsConstraint = []RuleResultsConstraint{
-	RuleResultsConstraintRuleResultsFileHistoryIDRuleIDKey,
+	RuleResultsConstraintRuleResultsFileHistoryIDTagKey,
 	RuleResultsConstraintRuleResultsPkey,
 }
 
 func (e RuleResultsConstraint) IsValid() bool {
 	switch e {
-	case RuleResultsConstraintRuleResultsFileHistoryIDRuleIDKey, RuleResultsConstraintRuleResultsPkey:
+	case RuleResultsConstraintRuleResultsFileHistoryIDTagKey, RuleResultsConstraintRuleResultsPkey:
 		return true
 	}
 	return false
@@ -2329,26 +2324,29 @@ const (
 	// column name
 	RuleResultsSelectColumnCreatedAt RuleResultsSelectColumn = "created_at"
 	// column name
-	RuleResultsSelectColumnData RuleResultsSelectColumn = "data"
-	// column name
 	RuleResultsSelectColumnFileHistoryID RuleResultsSelectColumn = "file_history_id"
 	// column name
 	RuleResultsSelectColumnRuleID RuleResultsSelectColumn = "rule_id"
 	// column name
 	RuleResultsSelectColumnRuleResultID RuleResultsSelectColumn = "rule_result_id"
+	// column name
+	RuleResultsSelectColumnTag RuleResultsSelectColumn = "tag"
+	// column name
+	RuleResultsSelectColumnValue RuleResultsSelectColumn = "value"
 )
 
 var AllRuleResultsSelectColumn = []RuleResultsSelectColumn{
 	RuleResultsSelectColumnCreatedAt,
-	RuleResultsSelectColumnData,
 	RuleResultsSelectColumnFileHistoryID,
 	RuleResultsSelectColumnRuleID,
 	RuleResultsSelectColumnRuleResultID,
+	RuleResultsSelectColumnTag,
+	RuleResultsSelectColumnValue,
 }
 
 func (e RuleResultsSelectColumn) IsValid() bool {
 	switch e {
-	case RuleResultsSelectColumnCreatedAt, RuleResultsSelectColumnData, RuleResultsSelectColumnFileHistoryID, RuleResultsSelectColumnRuleID, RuleResultsSelectColumnRuleResultID:
+	case RuleResultsSelectColumnCreatedAt, RuleResultsSelectColumnFileHistoryID, RuleResultsSelectColumnRuleID, RuleResultsSelectColumnRuleResultID, RuleResultsSelectColumnTag, RuleResultsSelectColumnValue:
 		return true
 	}
 	return false
@@ -2382,26 +2380,29 @@ const (
 	// column name
 	RuleResultsUpdateColumnCreatedAt RuleResultsUpdateColumn = "created_at"
 	// column name
-	RuleResultsUpdateColumnData RuleResultsUpdateColumn = "data"
-	// column name
 	RuleResultsUpdateColumnFileHistoryID RuleResultsUpdateColumn = "file_history_id"
 	// column name
 	RuleResultsUpdateColumnRuleID RuleResultsUpdateColumn = "rule_id"
 	// column name
 	RuleResultsUpdateColumnRuleResultID RuleResultsUpdateColumn = "rule_result_id"
+	// column name
+	RuleResultsUpdateColumnTag RuleResultsUpdateColumn = "tag"
+	// column name
+	RuleResultsUpdateColumnValue RuleResultsUpdateColumn = "value"
 )
 
 var AllRuleResultsUpdateColumn = []RuleResultsUpdateColumn{
 	RuleResultsUpdateColumnCreatedAt,
-	RuleResultsUpdateColumnData,
 	RuleResultsUpdateColumnFileHistoryID,
 	RuleResultsUpdateColumnRuleID,
 	RuleResultsUpdateColumnRuleResultID,
+	RuleResultsUpdateColumnTag,
+	RuleResultsUpdateColumnValue,
 }
 
 func (e RuleResultsUpdateColumn) IsValid() bool {
 	switch e {
-	case RuleResultsUpdateColumnCreatedAt, RuleResultsUpdateColumnData, RuleResultsUpdateColumnFileHistoryID, RuleResultsUpdateColumnRuleID, RuleResultsUpdateColumnRuleResultID:
+	case RuleResultsUpdateColumnCreatedAt, RuleResultsUpdateColumnFileHistoryID, RuleResultsUpdateColumnRuleID, RuleResultsUpdateColumnRuleResultID, RuleResultsUpdateColumnTag, RuleResultsUpdateColumnValue:
 		return true
 	}
 	return false
@@ -2489,6 +2490,8 @@ const (
 	RulesSelectColumnRule RulesSelectColumn = "rule"
 	// column name
 	RulesSelectColumnRuleID RulesSelectColumn = "rule_id"
+	// column name
+	RulesSelectColumnRuleType RulesSelectColumn = "rule_type"
 )
 
 var AllRulesSelectColumn = []RulesSelectColumn{
@@ -2497,11 +2500,12 @@ var AllRulesSelectColumn = []RulesSelectColumn{
 	RulesSelectColumnPriority,
 	RulesSelectColumnRule,
 	RulesSelectColumnRuleID,
+	RulesSelectColumnRuleType,
 }
 
 func (e RulesSelectColumn) IsValid() bool {
 	switch e {
-	case RulesSelectColumnIgnore, RulesSelectColumnPrincipal, RulesSelectColumnPriority, RulesSelectColumnRule, RulesSelectColumnRuleID:
+	case RulesSelectColumnIgnore, RulesSelectColumnPrincipal, RulesSelectColumnPriority, RulesSelectColumnRule, RulesSelectColumnRuleID, RulesSelectColumnRuleType:
 		return true
 	}
 	return false
@@ -2542,6 +2546,8 @@ const (
 	RulesUpdateColumnRule RulesUpdateColumn = "rule"
 	// column name
 	RulesUpdateColumnRuleID RulesUpdateColumn = "rule_id"
+	// column name
+	RulesUpdateColumnRuleType RulesUpdateColumn = "rule_type"
 )
 
 var AllRulesUpdateColumn = []RulesUpdateColumn{
@@ -2550,11 +2556,12 @@ var AllRulesUpdateColumn = []RulesUpdateColumn{
 	RulesUpdateColumnPriority,
 	RulesUpdateColumnRule,
 	RulesUpdateColumnRuleID,
+	RulesUpdateColumnRuleType,
 }
 
 func (e RulesUpdateColumn) IsValid() bool {
 	switch e {
-	case RulesUpdateColumnIgnore, RulesUpdateColumnPrincipal, RulesUpdateColumnPriority, RulesUpdateColumnRule, RulesUpdateColumnRuleID:
+	case RulesUpdateColumnIgnore, RulesUpdateColumnPrincipal, RulesUpdateColumnPriority, RulesUpdateColumnRule, RulesUpdateColumnRuleID, RulesUpdateColumnRuleType:
 		return true
 	}
 	return false

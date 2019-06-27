@@ -1,0 +1,12 @@
+- args:
+    name: rule_results
+    table:
+      name: files
+      schema: public
+    using:
+      foreign_key_constraint_on:
+        column: file_history_id
+        table:
+          name: rule_results
+          schema: public
+  type: create_array_relationship

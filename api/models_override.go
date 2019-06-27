@@ -6,16 +6,18 @@ import (
 
 // columns and relationships of "rule_results"
 type RuleResults struct {
-	CreatedAt *time.Time              `json:"created_at,omitempty"`
-	Data      map[string]interface{} `json:"data,omitempty"`
+	CreatedAt *time.Time `json:"created_at,omitempty"`
 	// An object relationship
 	FileHistory   *FileHistory `json:"file_history,omitempty"`
-	FileHistoryID int          `json:"file_history_id,omitempty"`
+	FileHistoryID *int          `json:"file_history_id,omitempty"`
 	// An object relationship
 	Rule         *Rules `json:"rule,omitempty"`
-	RuleID       int    `json:"rule_id,omitempty"`
-	RuleResultID int    `json:"rule_result_id,omitempty"`
+	RuleID       *int    `json:"rule_id,omitempty"`
+	RuleResultID *int    `json:"rule_result_id,omitempty"`
+	Tag          *string `json:"tag,omitempty"`
+	Value        *string `json:"value,omitempty"`
 }
+
 
 // columns and relationships of "file_history"
 type FileHistory struct {

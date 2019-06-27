@@ -4,6 +4,7 @@ go 1.12
 
 require (
 	github.com/99designs/gqlgen v0.9.0
+	github.com/deckarep/golang-set v1.7.1
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
 	github.com/fatih/structs v1.1.0
 	github.com/hectane/go-acl v0.0.0-20190604041725-da78bae5fc95

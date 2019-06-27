@@ -2,9 +2,10 @@ package api
 
 import (
 	"context"
-	"log"
-	"time"
 	"encoding/json"
+	"log"
+	"fmt"
+	"time"
 
 	"github.com/machinebox/graphql"
 )
@@ -46,7 +47,9 @@ func (gg *GamtracGql) Run(query string, rslt interface{}, vars map[string]interf
 
 func (gg *GamtracGql) RunFetchFiles() ([]FileHistory, error) {
 	var respData struct {
-		FileHistories []FileHistory `json:"file_history"`
+		FileHistories [] struct {
+			File FileHistory `json:"file_history"`
+		} `json:"files"`
 	}
 
 	query := `
@@ -64,7 +67,8 @@ func (gg *GamtracGql) RunFetchFiles() ([]FileHistory, error) {
 				rule_result_id
 				rule_id
 				created_at
-				data
+				tag
+				value
 			}
 		  }
 		}
@@ -73,9 +77,15 @@ func (gg *GamtracGql) RunFetchFiles() ([]FileHistory, error) {
 	if err := gg.Run(query, &respData, nil); err != nil {
 		return nil, err
 	}
-	return respData.FileHistories, nil
+	files := make([]FileHistory, len(respData.FileHistories))
+	for i := range respData.FileHistories {
+		files[i] = respData.FileHistories[i].File
+		if (files[i].Filename == "") {
+			return nil, fmt.Errorf("Internal error: empty filename in old file history #%v, id %v", i, files[i].FileHistoryID)
+		}
+	}
+	return files, nil
 }
-
 
 func fillStruct(data interface{}, recv interface{}) error {
 	bytes, err := json.Marshal(data)
@@ -91,16 +101,20 @@ type JSON map[string]interface{}
 func ToNestedInsert(props []string, objects []interface{}) []JSON {
 	// Hasura needs a bit of reshaping for nested inserts, namely
 	// what normally would be a [rule_results] it needs a {data: [rule_results], on_conflict: {...}}
-	toInsert := []JSON{}
-	for _, c := range objects {
-		ret := JSON{}
-		fillStruct(&c, &ret)
+	toInsert := make([]JSON, len(objects))
+	for i := range objects {
+		err := fillStruct(&objects[i], &toInsert[i])
+		if err != nil {
+			panic(err)
+		}
+	}
+	for i := range toInsert {
+		ret := toInsert[i]
 		for _, prop := range props {
 			if ret[prop] != nil {
 				ret[prop] = JSON{"data": ret[prop]}
 			}
 		}
-		toInsert = append(toInsert, ret)
 	}
 	return toInsert
 }
@@ -118,6 +132,14 @@ func (gg *GamtracGql) RunInsertFileHistory(files []FileHistory) ([]int64, error)
 	}
 
 	insertData := ToNestedInsert([]string{"rule_results"}, pfiles)
+	for i, id := range insertData {
+		if s, ok := id["filename"].(string); !ok {
+			println("File ", i, "is not ok", s)
+			if ss, err := json.Marshal(insertData[i]); err == nil {
+				println(string(ss))
+			}
+		}
+	}
 	query := `
 	mutation ($files: [file_history_insert_input!]!) {
 		insert_file_history(objects: $files)
@@ -141,7 +163,6 @@ func (gg *GamtracGql) RunInsertFileHistory(files []FileHistory) ([]int64, error)
 	}
 	return ret, nil
 }
-
 
 func (gg *GamtracGql) RunInsertRuleResults(results []*RuleResults) ([]int, error) {
 	var respData struct {
@@ -167,7 +188,7 @@ func (gg *GamtracGql) RunInsertRuleResults(results []*RuleResults) ([]int, error
 	}
 	ret := []int{}
 	for _, rr := range respData.InsertRuleResults.RuleResults {
-		ret = append(ret, rr.RuleResultID)
+		ret = append(ret, *rr.RuleResultID)
 	}
 	return ret, nil
 }
@@ -277,12 +298,13 @@ func (gg *GamtracGql) RunFetchRules() ([]Rules, error) {
 
 	query := `
 	query {
-		rules {
+		rules(where:{rule_type:{_eq: "pathtags"}}) {
+			rule_id
 			principal
 			priority
 			rule
-			rule_id
 			ignore
+			rule_type
 		}
 	}
 	`

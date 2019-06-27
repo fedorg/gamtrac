@@ -11,18 +11,18 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/fatih/structs"
+	"github.com/deckarep/golang-set"
 	"github.com/r3labs/diff"
 )
 
 type HashDigest = api.HashDigest
 type FileError = api.FileError
-type AnnotResult = api.AnnotResult
 
 type MountedPath struct {
 	Destination string
@@ -45,6 +45,7 @@ type AnnotItem struct {
 	path     MountedPath
 	fileInfo os.FileInfo
 	rules    []rules.RuleMatcher
+	ruleIDs  []int
 	queuedAt time.Time
 }
 
@@ -80,23 +81,27 @@ func NewFileError(err error) FileError {
 	}
 }
 
-func processFile(inputs <-chan AnnotItem, output chan<- *AnnotResult, wg *sync.WaitGroup) {
+func processFile(inputs <-chan AnnotItem, output chan<- *api.AnnotResult, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for input := range inputs {
+		errors := []FileError{}
+		
 		destination := input.path.Destination
 		mountedAt := input.path.MountedAt
 		info := input.fileInfo
 		// fmt.Println("Processing file: ", mountedAt)
-		errors := []FileError{}
-		// matches := rules.MatchAllRules(destination, input.rules)
-		// i := FindBestRuleIndex(matches)
-		var rule *string
-		var ruleVars map[string]string
-		parsed := rules.ParseFilename(destination, input.rules, true)
-		if parsed != nil {
-			rule = &parsed.Rule.Rule
-			ruleVars = parsed.AsMap()
+		var pattern *string
+		ruleVars := map[string]string{}
+		ruleID := -1 // TODO: somehow get rid of this
+		matches := rules.MatchAllRules(destination, input.rules)
+		i := rules.FindBestRuleIndex(matches)
+		if i != -1 {
+			m := matches[i]
+			ruleID = input.ruleIDs[i]
+			pattern =  &m.Rule.Rule
+			ruleVars = m.AsMap()
 		}
+
 		owner, err := scanner.GetFileOwnerUID(mountedAt)
 		if err != nil {
 			errors = append(errors, NewFileError(err))
@@ -108,26 +113,41 @@ func processFile(inputs <-chan AnnotItem, output chan<- *AnnotResult, wg *sync.W
 				errors = append(errors, NewFileError(err))
 			}
 		}
-		ret := api.NewAnnotResult(destination, mountedAt, info.Size(), info.Mode(), info.ModTime(), input.queuedAt, time.Now(), info.IsDir(), owner, hash, rule, &ruleVars, errors)
+		ret := api.AnnotResult{
+			Path:        destination,
+			RuleID:      ruleID,
+			MountDir:    mountedAt,
+			Size:        info.Size(),
+			Mode:        info.Mode(),
+			ModTime:     info.ModTime(),
+			QueuedAt:    input.queuedAt,
+			ProcessedAt: time.Now(),
+			IsDir:       info.IsDir(),
+			OwnerUID:    owner,
+			Hash:        hash,
+			Pattern:     pattern,
+			Parsed:      &ruleVars,
+			Errors:      errors,
+		}
 		// fmt.Println("Finished processing file: ", mountedAt)
 		output <- &ret
 	}
 }
 
-func collectResults(annots <-chan *AnnotResult, out chan<- map[string]*AnnotResult) {
+func collectResults(annots <-chan *api.AnnotResult, out chan<- map[string]*api.AnnotResult) {
 	// TODO: make this less ugly
-	ret := map[string]*AnnotResult{}
+	ret := map[string]*api.AnnotResult{}
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 	m := &sync.Mutex{}
-	set := func(filename string, rslt *AnnotResult) {
+	set := func(filename string, rslt *api.AnnotResult) {
 		m.Lock()
 		defer m.Unlock()
 		old, exists := ret[filename]
 		if !exists {
 			ret[filename] = rslt
 		} else {
-			if old.ProcessedAt.Before(rslt.ProcessedAt) {
+			if rslt.QueuedAt.After(old.QueuedAt) {
 				ret[filename] = rslt
 			}
 		}
@@ -143,101 +163,95 @@ func collectResults(annots <-chan *AnnotResult, out chan<- map[string]*AnnotResu
 	out <- ret
 }
 
-type FilePropDiff map[string]interface{}
+func GetChangedProps(a, b interface{}) ([]string, error) {
+	changes, err := diff.Diff(a, b)
+	if err != nil {
+		return nil, err
+	}
+	ret := []string{}
+	for _, c := range changes {
+		ret = append(ret, c.Path[0])
+	}
+	return ret, nil
+}
 
-func GenerateChangelist(scan int, oldFiles []api.FileHistory, rslts map[string]*AnnotResult) ([]api.FileHistory, error) {
-	new := map[string]*api.FileHistory{}
-	old := map[string]*api.FileHistory{}
+func GenerateChangelist(scan int, oldFiles []api.FileHistory, curFiles map[string]*api.AnnotResult) ([]api.FileHistory, error) {
+	old := mapset.NewSet()
+	cur := mapset.NewSet()
+	oldmap := map[string]*api.FileHistory{}
 	for i, r := range oldFiles {
-		old[r.Filename] = &oldFiles[i]
+		if !old.Add(r.Filename) {
+			println("Duplicate filename found in old files, using first record: ", r.Filename)
+		}
+		oldmap[r.Filename] = &oldFiles[i]
+	}
+	for fn := range curFiles {
+		cur.Add(fn)
 	}
 
-	for filename, r := range rslts {
-		var data map[string]interface{}
-		data = structs.Map(r)
-		delete(data, "Path")
-		delete(data, "MountDir")
-		if r.Hash != nil {
-			data["Hash"] = r.Hash.String()
+	deleted := old.Difference(cur)
+	created := cur.Difference(old)
+	modified := mapset.NewSet()
+	// unchanged := mapset.NewSet()
+	for fni := range old.Intersect(cur).Iter() {
+		fn := fni.(string)
+		curfile := curFiles[fn]
+		curResults := curfile.ToJSONMap()
+		// TODO: respect RuleID and Priority when overwriting values
+		oldResults := map[string]string{}
+		for _, rr := range oldmap[fn].RuleResults {
+			oldResults[*rr.Tag] = *rr.Value
+		}
+		changes, err := GetChangedProps(oldResults, curResults)
+		if err != nil {
+			println(err)
+			continue // don't mark errors as modified as that will flood the database with bogus modifications (TODO: allow for error type)
+		}
+		excl := mapset.NewSet("Path", "MountDir", "Errors")
+		changeset := []interface{}{}
+		for _, prop := range changes {
+			changeset = append(changeset, prop)
+		}
+		realChanges := mapset.NewSetFromSlice(changeset).Difference(excl)
+		if len(realChanges.ToSlice()) > 0 {
+			modified.Add(fn)
 		} else {
-			data["Hash"] = nil
+			// unchanged.Add(fn)
 		}
-		new[filename] = &api.FileHistory{
-			Filename:    filename,
-			ScanID:      scan,
-			RuleResults: []*api.RuleResults{{Data: data}},
-		}
-	}
-	// see what files have changed and put these into action var
-	actions := map[string]string{}
-	changedProps := map[string]FilePropDiff{}
-
-	getChangedProps := func(a, b interface{}) (FilePropDiff, error) {
-		changes, err := diff.Diff(a, b)
-		if err != nil {
-			return nil, err
-		}
-		ret := FilePropDiff{}
-		for _, c := range changes {
-			key := c.Path[0]
-			ret[key] = c.To
-		}
-		return ret, nil
 	}
 
-	for fn := range new {
-		actions[fn] = "C"
-	}
-	for fn := range old {
-		actions[fn] = "D"
-	}
-	for fn := range actions {
-		oldf, isold := old[fn]
-		newf, isnew := new[fn]
-		if !(isold && isnew) {
-			continue // created and delted files are already accounted for
-		}
-		actions[fn] = ""
-		// TODO: this only scans the first result
-		changes, err := getChangedProps(&oldf.RuleResults[0].Data, &newf.RuleResults[0].Data)
-		if err != nil {
-			return nil, err
-		}
-		if len(changes) > 0 {
-			actions[fn] = "M"
-			changedProps[fn] = changes
-		}
-	}
-	retMap := map[string]api.FileHistory{}
-	for fn, act := range actions {
+	ret := []api.FileHistory{}
+	allI := append(append(modified.ToSlice(), created.ToSlice()...), deleted.ToSlice()...)
+	// all := mapset.NewSet().Union(created).Union(deleted).Union(modified)
+	for _, fni := range allI {
+		fn := fni.(string)
 		item := api.FileHistory{
 			Filename:    fn,
 			ScanID:      scan,
-			Action:      act,
 			RuleResults: nil,
 		}
-		// shallow copy, don't reuse old RuleResults
-		switch act {
-		case "C":
-			item.PrevID = 0
-			item.RuleResults = new[fn].RuleResults
-		case "D":
-			item.PrevID = int(old[fn].FileHistoryID)
-		case "M":
-			item.PrevID = int(old[fn].FileHistoryID)
-			item.RuleResults = new[fn].RuleResults
+		// don't reuse old RuleResults
+		switch {
+		case created.Contains(fn):
+			item.Action = "C"
+			fmt.Printf("Created: %v\n", fn)
+			item.RuleResults = curFiles[fn].ToRuleInsert()
+		case deleted.Contains(fn):
+			item.Action = "D"
+			fmt.Printf("Deleted: %v\n", fn)
+			item.PrevID = int(oldmap[fn].FileHistoryID)
+		case modified.Contains(fn):
+			item.Action = "M"
+			fmt.Printf("Modified: %v\n", fn)
+			item.PrevID = int(oldmap[fn].FileHistoryID)
+			item.RuleResults = curFiles[fn].ToRuleInsert()
 		default:
+			// unchanged
 			continue
 		}
-		retMap[fn] = item
+		ret = append(ret, item)
 	}
 	// TODO: return diff results
-	ret := make([]api.FileHistory, len(retMap))
-	i := 0
-	for _, f := range retMap {
-		ret[i] = f
-		i++
-	}
 	return ret, nil
 }
 
@@ -307,35 +321,30 @@ func rulesGetLocal() []rules.RuleMatcher {
 }
 
 // returns rules and corresponding rule_id
-// TODO: remove second return, it is broken on matching rule strings (ie ignore + non-ignore)
-func rulesGetRemote(gg *api.GamtracGql) ([]rules.RuleMatcher, map[string]int) {
+func rulesGetRemote(gg *api.GamtracGql) ([]rules.RuleMatcher, []int) {
 	// fetch rules from the database
-	ret := []rules.RuleMatcher{}
-	idMap := map[string]int{}
 	remoteRules, err := gg.RunFetchRules()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Cannot read remote rules: %e\n", err)
-	} else {
-		matchers := []rules.RuleMatcher{}
-		ignoredMatchers := []rules.RuleMatcher{}
-		for _, rule := range remoteRules {
-			rm, err := rules.NewMatcher(rule.Rule)
-			idMap[rm.Rule] = rule.RuleID
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Cannot read remote rules: %e\n", err)
-				return []rules.RuleMatcher{}, map[string]int{}
-			}
-			if rule.Ignore {
-				ignoredMatchers = append(ignoredMatchers, *rm)
-			} else {
-				matchers = append(matchers, *rm)
-			}
-		}
-		// place ignored rules first so that they take precedence
-		ret = append(ret, ignoredMatchers...)
-		ret = append(ret, matchers...)
+		return []rules.RuleMatcher{}, []int{}
 	}
-	return ret, idMap
+	// place ignored rules first so that they take precedence
+	sort.Slice(remoteRules, func(i, j int) bool {
+		return (remoteRules[i].Ignore == true) && (remoteRules[j].Ignore == false)
+	})
+	ret := []rules.RuleMatcher{}
+	idList := []int{}
+	for _, rule := range remoteRules {
+		rm, err := rules.NewMatcher(rule.Rule)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Cannot parse remote rule %v: %e\n", rule.Rule, err)
+			continue
+		}
+		ret = append(ret, *rm)
+		idList = append(idList, rule.RuleID)
+	}
+
+	return ret, idList
 }
 
 func triggerScan(remotePaths []string, ac AppCredentials) (int, error) {
@@ -359,21 +368,25 @@ func triggerScan(remotePaths []string, ac AppCredentials) (int, error) {
 	if err != nil {
 		return -1, err
 	}
+	fmt.Printf("Scan %v\n\n", *rev)
 	oldFiles, err := gg.RunFetchFiles()
 
-	epoch := *rev
-	fmt.Printf("Epoch %v\n\n", epoch)
-
+	ruleIDList := []int{} // TODO: not the most elegant solution
 	localRules := rulesGetLocal()
-	remoteRules, ruleMap := rulesGetRemote(gg)
+	for range localRules {
+		ruleIDList = append(ruleIDList, -1)
+	}
+	remoteRules, rrIds := rulesGetRemote(gg)
 	ruleMatchers := append(localRules, remoteRules...)
+	ruleIDList = append(ruleIDList, rrIds...)
+
 	if len(ruleMatchers) == 0 {
 		err = fmt.Errorf("failed to load at least one rule")
 		return *rev, (err)
 	}
 
 	inputs := make(chan AnnotItem)
-	output := make(chan *AnnotResult)
+	output := make(chan *api.AnnotResult)
 	// errorsChan := make(chan FileError)
 
 	wg := &sync.WaitGroup{}
@@ -383,11 +396,12 @@ func triggerScan(remotePaths []string, ac AppCredentials) (int, error) {
 		go processFile(inputs, output, wg)
 	}
 
-	done := make(chan map[string]*AnnotResult)
+	done := make(chan map[string]*api.AnnotResult)
 	go collectResults(output, done)
 
 	for _, p := range *paths {
 		filepath.Walk(p.MountedAt, func(path string, f os.FileInfo, err error) error {
+			// TODO: propagate errors throught to the DB
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error: %e\n", err)
 				return err
@@ -410,7 +424,7 @@ func triggerScan(remotePaths []string, ac AppCredentials) (int, error) {
 				MountedAt:   path,
 				Mounted:     false,
 			}
-			func() { inputs <- AnnotItem{path: mp, fileInfo: f, queuedAt: time.Now(), rules: ruleMatchers} }()
+			inputs <- AnnotItem{path: mp, fileInfo: f, queuedAt: time.Now(), rules: ruleMatchers, ruleIDs: ruleIDList}
 			return nil
 		})
 	}
@@ -419,37 +433,14 @@ func triggerScan(remotePaths []string, ac AppCredentials) (int, error) {
 	wg.Wait()
 	close(output)
 	rslt := <-done
-	changes, err := GenerateChangelist(int(epoch), oldFiles, rslt)
+	changes, err := GenerateChangelist(int(*rev), oldFiles, rslt)
 	if err != nil {
 		return *rev, err
-	}
-	// patch rule_ids back into changes
-	// TODO: remove this hack and pass rule_id through
-	for _, c := range changes {
-		if (c.RuleResults == nil) || (len(c.RuleResults) == 0) {
-			continue
-		}
-		for _, rr := range c.RuleResults {
-			ruleID := -1
-			patt, ok := rr.Data["Pattern"]
-			if !ok {
-				patt = ""
-			}
-			strpatt, ok := patt.(string)
-			if !ok {
-				strpatt = ""
-			}
-			ruleID, ok = ruleMap[strpatt]
-			if !ok {
-				ruleID = -1
-			}
-			rr.RuleID = ruleID
-		}
 	}
 
 	newFileIds, err := gg.RunInsertFileHistory(changes)
 	if err != nil {
-		return *rev, fmt.Errorf("Cannot update files on server:\n%v\n", err)
+		return *rev, fmt.Errorf("cannot update files on server:\n%v", err)
 	}
 	if len(newFileIds) != len(changes) {
 		return *rev, fmt.Errorf("invalid number of file records inserted: expected %v, got %v", len(changes), len(newFileIds))
@@ -461,13 +452,13 @@ func triggerScan(remotePaths []string, ac AppCredentials) (int, error) {
 	if err != nil {
 		return *rev, err
 	}
-	fmt.Printf("Finished epoch: %v\n%v\n", epoch, *scanInfo.FileHistoriesAggregate.Aggregate.Count)
+	fmt.Printf("Finished scan: %v\n%v\n", *rev, *scanInfo.FileHistoriesAggregate.Aggregate.Count)
 
 	return *rev, nil
 }
 
 func fetchDomainUsers(ac AppCredentials) ([]api.DomainUsers, error) {
-	// rslt := map[string]AnnotResult{}
+	// rslt := map[string]api.AnnotResult{}
 	li, err := scanner.NewConnectionInfo("biocad.loc", "biocad", ac.username, ac.pass, true, false)
 	if err != nil {
 		return nil, err
