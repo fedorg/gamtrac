@@ -75,9 +75,6 @@ type AnnotResult struct {
 	Errors      []FileError        `diff:"-"`        // required
 }
 
-// TODO: create interface for converting this to RuleResults
-// should contain RuleID and toJSONMap
-
 func (a AnnotResult) ToJSONMap() map[string]string {
 	if ret, err := ToJSONMap(a); err != nil {
 		panic(err)
@@ -86,19 +83,31 @@ func (a AnnotResult) ToJSONMap() map[string]string {
 	}
 }
 
+// TODO: convert to interface
+// RuleID *int
+// RuleType string
+// meta // ignored on diff, write
+// writeMeta() // which of meta to write
+// toruleinsert(ruleid)
+
+
+
 func (a AnnotResult) ToRuleInsert() []*RuleResults {
-	ruleid := a.RuleID
 	ret := []*RuleResults{}
 	for tag, value := range a.ToJSONMap() {
 		if (tag == "Path" || tag == "MountDir" || tag == "RuleID" || tag == "Pattern") {
 			continue
 		}
-		rr := RuleResults{
+		// copy this stuff
+		ruleid := a.RuleID // todo: move to param or interface
+		tag := tag
+		value := value
+		rr := &RuleResults{
 			Tag:           &tag,
 			Value:         &value,
 			RuleID:        &ruleid,
 		}
-		ret = append(ret, &rr)
+		ret = append(ret, rr)
 	}
 	return ret
 }

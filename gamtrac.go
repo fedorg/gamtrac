@@ -85,7 +85,7 @@ func processFile(inputs <-chan AnnotItem, output chan<- *api.AnnotResult, wg *sy
 	defer wg.Done()
 	for input := range inputs {
 		errors := []FileError{}
-		
+
 		destination := input.path.Destination
 		mountedAt := input.path.MountedAt
 		info := input.fileInfo
@@ -98,7 +98,7 @@ func processFile(inputs <-chan AnnotItem, output chan<- *api.AnnotResult, wg *sy
 		if i != -1 {
 			m := matches[i]
 			ruleID = input.ruleIDs[i]
-			pattern =  &m.Rule.Rule
+			pattern = &m.Rule.Rule
 			ruleVars = m.AsMap()
 		}
 
@@ -207,7 +207,7 @@ func GenerateChangelist(scan int, oldFiles []api.FileHistory, curFiles map[strin
 			println(err)
 			continue // don't mark errors as modified as that will flood the database with bogus modifications (TODO: allow for error type)
 		}
-		excl := mapset.NewSet("Path", "MountDir", "Errors")
+		excl := mapset.NewSet("Path", "MountDir", "Errors", "QueuedAt", "ProcessedAt", "Pattern", "RuleID")
 		changeset := []interface{}{}
 		for _, prop := range changes {
 			changeset = append(changeset, prop)
@@ -275,8 +275,8 @@ func (_ AppCredentials) FromEnv() AppCredentials {
 func mountPaths(paths []string, allowLocal bool, ac AppCredentials) (*map[string]MountedPath, func(), error) {
 	mounts := map[string]MountedPath{}
 	unmountAll := func() {
-		for _, p := range mounts {
-			p.Unmount()
+		for i := range mounts {
+			mounts[i].Unmount()
 		}
 	}
 	for _, p := range paths {
@@ -371,8 +371,8 @@ func triggerScan(remotePaths []string, ac AppCredentials) (int, error) {
 	fmt.Printf("Scan %v\n\n", *rev)
 	oldFiles, err := gg.RunFetchFiles()
 
-	ruleIDList := []int{} // TODO: not the most elegant solution
 	localRules := rulesGetLocal()
+	ruleIDList := []int{} // TODO: not the most elegant solution
 	for range localRules {
 		ruleIDList = append(ruleIDList, -1)
 	}
@@ -452,7 +452,7 @@ func triggerScan(remotePaths []string, ac AppCredentials) (int, error) {
 	if err != nil {
 		return *rev, err
 	}
-	fmt.Printf("Finished scan: %v\n%v\n", *rev, *scanInfo.FileHistoriesAggregate.Aggregate.Count)
+	fmt.Printf("Finished scan #%v; inserted records: %v\n", *rev, *scanInfo.FileHistoriesAggregate.Aggregate.Count)
 
 	return *rev, nil
 }
