@@ -4,10 +4,12 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/fatih/structs"
 	"os"
 	"strings"
 	"time"
+
+	mapset "github.com/deckarep/golang-set"
+	"github.com/fatih/structs"
 )
 
 type HashDigest struct {
@@ -58,56 +60,106 @@ func ToJSONMap(r interface{}) (map[string]string, error) {
 	return ret, nil
 }
 
-type AnnotResult struct {
-	Path        string             `diff:"Path,identifier"` // required
-	RuleID      int                `diff:"RuleID"`
-	MountDir    string             `diff:"-" json:"-"`
-	Size        int64              `diff:"Size"`     // required
-	Mode        os.FileMode        `diff:"Mode"`     // required
-	ModTime     time.Time          `diff:"ModTime"`  // required
-	QueuedAt    time.Time          `diff:"-"`        // required
-	ProcessedAt time.Time          `diff:"-"`        // required
-	IsDir       bool               `diff:"IsDir"`    // required
-	OwnerUID    *string            `diff:"OwnerUID"` // optional
-	Hash        *HashDigest        `diff:"Hash"`     // optional
-	Pattern     *string            `diff:"Pattern"`  // optional
-	Parsed      *map[string]string `diff:"Parsed"`   // optional
-	Errors      []FileError        `diff:"-"`        // required
+type AnnotResultConfig struct {
+	IgnoredProps mapset.Set
+	MetaProps    mapset.Set
+	RuleID       int
+	Path         string
 }
 
-func (a AnnotResult) ToJSONMap() map[string]string {
-	if ret, err := ToJSONMap(a); err != nil {
-		panic(err)
-	} else {
-		return ret
+type AnnotResult interface {
+	toPropsMap() (map[string]string, error)
+	GetConfig() AnnotResultConfig
+}
+
+// TODO: implement the binary file data agregator
+
+func ToChangeset(a AnnotResult) (map[string]string, error) {
+	fields, err := a.toPropsMap()
+	if err != nil {
+		return nil, err
 	}
-}
-
-// TODO: convert to interface
-// RuleID *int
-// RuleType string
-// meta // ignored on diff, write
-// writeMeta() // which of meta to write
-// toruleinsert(ruleid)
-
-
-
-func (a AnnotResult) ToRuleInsert() []*RuleResults {
-	ret := []*RuleResults{}
-	for tag, value := range a.ToJSONMap() {
-		if (tag == "Path" || tag == "MountDir" || tag == "RuleID" || tag == "Pattern") {
+	curConfig := a.GetConfig()
+	changeset := map[string]string{}
+	for key, val := range fields {
+		isIgnored := curConfig.IgnoredProps.Contains(key)
+		isMeta := curConfig.MetaProps.Contains(key)
+		if isIgnored || isMeta {
 			continue
 		}
-		// copy this stuff
-		ruleid := a.RuleID // todo: move to param or interface
-		tag := tag
+		changeset[key] = val
+	}
+	return changeset, nil
+}
+
+
+func ToRuleResult(a AnnotResult) []*RuleResults {
+	ret := []*RuleResults{}
+	annots, err := a.toPropsMap()
+	if err != nil {
+		panic(err) // TODO: do something with errors
+	}
+	config := a.GetConfig()
+	for tag, value := range annots {
+		if config.IgnoredProps.Contains(tag) {
+			continue
+		}
+		meta := config.MetaProps.Contains(tag)
+		ruleid := config.RuleID
+		tag := tag // copying is crucial
 		value := value
 		rr := &RuleResults{
-			Tag:           &tag,
-			Value:         &value,
-			RuleID:        &ruleid,
+			Tag:    &tag,
+			Value:  &value,
+			RuleID: &ruleid,
+			Meta:   &meta,
 		}
 		ret = append(ret, rr)
 	}
 	return ret
+}
+
+type FilePropsResult struct {
+	RuleID      int
+	Path        string
+	MountDir    string
+	Size        int64
+	Mode        os.FileMode
+	ModTime     time.Time
+	QueuedAt    time.Time
+	ProcessedAt time.Time
+	IsDir       bool
+	OwnerUID    *string
+	Hash        *HashDigest
+	Errors      []FileError
+}
+
+func (r *FilePropsResult) GetConfig() AnnotResultConfig {
+	return AnnotResultConfig{
+		IgnoredProps: mapset.NewSet("MountDir", "RuleID", "Path"),
+		MetaProps:    mapset.NewSet("Errors", "QueuedAt", "ProcessedAt"),
+		RuleID:       r.RuleID,
+		Path:         r.Path,
+	}
+}
+func (r *FilePropsResult) toPropsMap() (map[string]string, error) {
+	return ToJSONMap(r)
+}
+
+type PathTagsResult struct {
+	Values map[string]string
+	RuleID int
+	Path   string
+}
+
+func (r *PathTagsResult) GetConfig() AnnotResultConfig {
+	return AnnotResultConfig{
+		IgnoredProps: mapset.NewSet("RuleID", "Path", "Values"),
+		MetaProps:    mapset.NewSet("Errors"),
+		RuleID:       r.RuleID,
+		Path:         r.Path,
+	}
+}
+func (r *PathTagsResult) toPropsMap() (map[string]string, error) {
+	return r.Values, nil
 }

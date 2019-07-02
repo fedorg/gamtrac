@@ -1863,6 +1863,7 @@ type rule_results {
   """An object relationship"""
   file_history: file_history!
   file_history_id: Int!
+  meta: Boolean!
 
   """An object relationship"""
   rule: rules!
@@ -1948,6 +1949,7 @@ input rule_results_bool_exp {
   created_at: timestamptz_comparison_exp
   file_history: file_history_bool_exp
   file_history_id: integer_comparison_exp
+  meta: boolean_comparison_exp
   rule: rules_bool_exp
   rule_id: integer_comparison_exp
   rule_result_id: integer_comparison_exp
@@ -1959,9 +1961,6 @@ input rule_results_bool_exp {
 unique or primary key constraints on table "rule_results"
 """
 enum rule_results_constraint {
-  """unique or primary key constraint"""
-  rule_results_file_history_id_tag_key
-
   """unique or primary key constraint"""
   rule_results_pkey
 }
@@ -1982,6 +1981,7 @@ input rule_results_insert_input {
   created_at: timestamptz
   file_history: file_history_obj_rel_insert_input
   file_history_id: Int
+  meta: Boolean
   rule: rules_obj_rel_insert_input
   rule_id: Int
   rule_result_id: Int
@@ -2067,6 +2067,7 @@ input rule_results_order_by {
   created_at: order_by
   file_history: file_history_order_by
   file_history_id: order_by
+  meta: order_by
   rule: rules_order_by
   rule_id: order_by
   rule_result_id: order_by
@@ -2083,6 +2084,9 @@ enum rule_results_select_column {
 
   """column name"""
   file_history_id
+
+  """column name"""
+  meta
 
   """column name"""
   rule_id
@@ -2103,6 +2107,7 @@ input type for updating data in table "rule_results"
 input rule_results_set_input {
   created_at: timestamptz
   file_history_id: Int
+  meta: Boolean
   rule_id: Int
   rule_result_id: Int
   tag: String
@@ -2182,6 +2187,9 @@ enum rule_results_update_column {
 
   """column name"""
   file_history_id
+
+  """column name"""
+  meta
 
   """column name"""
   rule_id

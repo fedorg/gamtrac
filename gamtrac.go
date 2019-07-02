@@ -81,7 +81,7 @@ func NewFileError(err error) FileError {
 	}
 }
 
-func processFile(inputs <-chan AnnotItem, output chan<- *api.AnnotResult, wg *sync.WaitGroup) {
+func processFile(inputs <-chan AnnotItem, output chan<- api.AnnotResult, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for input := range inputs {
 		errors := []FileError{}
@@ -90,18 +90,22 @@ func processFile(inputs <-chan AnnotItem, output chan<- *api.AnnotResult, wg *sy
 		mountedAt := input.path.MountedAt
 		info := input.fileInfo
 		// fmt.Println("Processing file: ", mountedAt)
-		var pattern *string
-		ruleVars := map[string]string{}
 		ruleID := -1 // TODO: somehow get rid of this
 		matches := rules.MatchAllRules(destination, input.rules)
 		i := rules.FindBestRuleIndex(matches)
+		ruleResult := api.PathTagsResult{
+			Path:   destination,
+			RuleID: -1,
+			Values: map[string]string{},
+		}
 		if i != -1 {
 			m := matches[i]
-			ruleID = input.ruleIDs[i]
-			pattern = &m.Rule.Rule
-			ruleVars = m.AsMap()
+			ruleResult = api.PathTagsResult{
+				Path:   destination,
+				RuleID: input.ruleIDs[i],
+				Values: m.AsMap(),
+			}
 		}
-
 		owner, err := scanner.GetFileOwnerUID(mountedAt)
 		if err != nil {
 			errors = append(errors, NewFileError(err))
@@ -113,7 +117,8 @@ func processFile(inputs <-chan AnnotItem, output chan<- *api.AnnotResult, wg *sy
 				errors = append(errors, NewFileError(err))
 			}
 		}
-		ret := api.AnnotResult{
+		// TODO: this should be just a notification for other microservices to start parsing
+		ret := api.FilePropsResult{
 			Path:        destination,
 			RuleID:      ruleID,
 			MountDir:    mountedAt,
@@ -125,57 +130,104 @@ func processFile(inputs <-chan AnnotItem, output chan<- *api.AnnotResult, wg *sy
 			IsDir:       info.IsDir(),
 			OwnerUID:    owner,
 			Hash:        hash,
-			Pattern:     pattern,
-			Parsed:      &ruleVars,
 			Errors:      errors,
 		}
 		// fmt.Println("Finished processing file: ", mountedAt)
 		output <- &ret
+		output <- &ruleResult
 	}
 }
 
-func collectResults(annots <-chan *api.AnnotResult, out chan<- map[string]*api.AnnotResult) {
+func collectResults(annots <-chan api.AnnotResult, out chan<- map[string][]api.AnnotResult) {
 	// TODO: make this less ugly
-	ret := map[string]*api.AnnotResult{}
+	ret := map[string][]api.AnnotResult{}
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 	m := &sync.Mutex{}
-	set := func(filename string, rslt *api.AnnotResult) {
+	set := func(filename string, rslt api.AnnotResult) {
 		m.Lock()
 		defer m.Unlock()
-		old, exists := ret[filename]
+		_, exists := ret[filename]
 		if !exists {
-			ret[filename] = rslt
+			ret[filename] = []api.AnnotResult{rslt}
 		} else {
-			if rslt.QueuedAt.After(old.QueuedAt) {
-				ret[filename] = rslt
-			}
+			// if rslt.QueuedAt.After(old.QueuedAt) {
+			ret[filename] = append(ret[filename], rslt)
+			// }
 		}
 	}
-	go func() {
+	go func() { // this is unnecessary
 		defer wg.Done()
 		for an := range annots {
 			// fmt.Printf("Collecting %v\n", an.Path)
-			set(an.Path, an)
+			config := an.GetConfig()
+			set(config.Path, an)
 		}
 	}()
 	wg.Wait()
 	out <- ret
 }
 
-func GetChangedProps(a, b interface{}) ([]string, error) {
+func GetChangedProps(a, b interface{}) ([]string, []diff.Change, error) {
 	changes, err := diff.Diff(a, b)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	ret := []string{}
+	ret, ret2 := []string{}, []diff.Change{}
 	for _, c := range changes {
 		ret = append(ret, c.Path[0])
+		ret2 = append(ret2, c)
 	}
-	return ret, nil
+	return ret, ret2, nil
 }
 
-func GenerateChangelist(scan int, oldFiles []api.FileHistory, curFiles map[string]*api.AnnotResult) ([]api.FileHistory, error) {
+// TODO: this is ugly and it loses metadata
+func CombineResultChangesets(results []api.AnnotResult) (map[string]string, error) {
+	valmap := map[string]string{}
+	for i, res := range results {
+		cur, err := api.ToChangeset(res)
+		if err != nil {
+			return nil, err
+		}
+		for key, val := range cur {
+			_, exists := valmap[key]
+			if exists {
+				return nil, fmt.Errorf("cannot flatten duplicate property %v in result #%d: %#v", key, i, res)
+			}
+			valmap[key] = val
+		}
+	}
+	return valmap, nil
+}
+
+// TODO: ugghhhh
+func CombineResultsIsInChangeset(results []api.AnnotResult) (func([]string) bool) {
+	nonsign := mapset.NewSet()
+	for _, res := range results {
+		cfg := res.GetConfig()
+		nonsign = nonsign.Union(cfg.MetaProps.Union(cfg.IgnoredProps))
+	}
+	return func (props []string) bool {
+		for _, prop := range props {
+			if nonsign.Contains(prop) {
+				return false
+			}
+		}
+		return true
+	}
+}
+
+
+func CombineResults(results []api.AnnotResult) []*api.RuleResults {
+	ret := []*api.RuleResults{}
+	for _, res := range results {
+		ret = append(ret, api.ToRuleResult(res)...)
+	}
+	return ret
+}
+
+
+func GenerateChangelist(scan int, oldFiles []api.FileHistory, curFiles map[string][]api.AnnotResult) ([]api.FileHistory, error) {
 	old := mapset.NewSet()
 	cur := mapset.NewSet()
 	oldmap := map[string]*api.FileHistory{}
@@ -195,25 +247,23 @@ func GenerateChangelist(scan int, oldFiles []api.FileHistory, curFiles map[strin
 	// unchanged := mapset.NewSet()
 	for fni := range old.Intersect(cur).Iter() {
 		fn := fni.(string)
-		curfile := curFiles[fn]
-		curResults := curfile.ToJSONMap()
+		curResults, err := CombineResultChangesets(curFiles[fn])
+		if err != nil {
+			return nil, err
+		}
+		isSignificant := CombineResultsIsInChangeset(curFiles[fn])
 		// TODO: respect RuleID and Priority when overwriting values
 		oldResults := map[string]string{}
 		for _, rr := range oldmap[fn].RuleResults {
 			oldResults[*rr.Tag] = *rr.Value
 		}
-		changes, err := GetChangedProps(oldResults, curResults)
+		changedProps, to, err := GetChangedProps(oldResults, curResults)
 		if err != nil {
 			println(err)
+			print(to)
 			continue // don't mark errors as modified as that will flood the database with bogus modifications (TODO: allow for error type)
 		}
-		excl := mapset.NewSet("Path", "MountDir", "Errors", "QueuedAt", "ProcessedAt", "Pattern", "RuleID")
-		changeset := []interface{}{}
-		for _, prop := range changes {
-			changeset = append(changeset, prop)
-		}
-		realChanges := mapset.NewSetFromSlice(changeset).Difference(excl)
-		if len(realChanges.ToSlice()) > 0 {
+		if len(changedProps) > 0 && isSignificant(changedProps){
 			modified.Add(fn)
 		} else {
 			// unchanged.Add(fn)
@@ -235,16 +285,16 @@ func GenerateChangelist(scan int, oldFiles []api.FileHistory, curFiles map[strin
 		case created.Contains(fn):
 			item.Action = "C"
 			fmt.Printf("Created: %v\n", fn)
-			item.RuleResults = curFiles[fn].ToRuleInsert()
+			item.RuleResults = CombineResults(curFiles[fn])
 		case deleted.Contains(fn):
 			item.Action = "D"
 			fmt.Printf("Deleted: %v\n", fn)
-			item.PrevID = int(oldmap[fn].FileHistoryID)
+			item.PrevID = int(oldmap[fn].FileHistoryID) // TODO: remove PrevID altogether
 		case modified.Contains(fn):
 			item.Action = "M"
 			fmt.Printf("Modified: %v\n", fn)
 			item.PrevID = int(oldmap[fn].FileHistoryID)
-			item.RuleResults = curFiles[fn].ToRuleInsert()
+			item.RuleResults = CombineResults(curFiles[fn])
 		default:
 			// unchanged
 			continue
@@ -386,7 +436,7 @@ func triggerScan(remotePaths []string, ac AppCredentials) (int, error) {
 	}
 
 	inputs := make(chan AnnotItem)
-	output := make(chan *api.AnnotResult)
+	output := make(chan api.AnnotResult)
 	// errorsChan := make(chan FileError)
 
 	wg := &sync.WaitGroup{}
@@ -396,7 +446,7 @@ func triggerScan(remotePaths []string, ac AppCredentials) (int, error) {
 		go processFile(inputs, output, wg)
 	}
 
-	done := make(chan map[string]*api.AnnotResult)
+	done := make(chan map[string][]api.AnnotResult)
 	go collectResults(output, done)
 
 	for _, p := range *paths {

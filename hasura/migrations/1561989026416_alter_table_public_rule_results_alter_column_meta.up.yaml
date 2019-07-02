@@ -1,0 +1,9 @@
+- args:
+    sql: ALTER TABLE "public"."rule_results" ALTER COLUMN "meta" TYPE bool;
+  type: run_sql
+- args:
+    sql: ALTER TABLE "public"."rule_results" ALTER COLUMN "meta" DROP DEFAULT;
+  type: run_sql
+- args:
+    sql: COMMENT ON COLUMN "public"."rule_results"."meta" IS ''
+  type: run_sql

@@ -69,6 +69,7 @@ func (gg *GamtracGql) RunFetchFiles() ([]FileHistory, error) {
 				created_at
 				tag
 				value
+				meta
 			}
 		  }
 		}

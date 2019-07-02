@@ -950,6 +950,7 @@ type RuleResultsBoolExp struct {
 	CreatedAt     *TimestamptzComparisonExp `json:"created_at"`
 	FileHistory   *FileHistoryBoolExp       `json:"file_history"`
 	FileHistoryID *IntegerComparisonExp     `json:"file_history_id"`
+	Meta          *BooleanComparisonExp     `json:"meta"`
 	Rule          *RulesBoolExp             `json:"rule"`
 	RuleID        *IntegerComparisonExp     `json:"rule_id"`
 	RuleResultID  *IntegerComparisonExp     `json:"rule_result_id"`
@@ -969,6 +970,7 @@ type RuleResultsInsertInput struct {
 	CreatedAt     *time.Time                    `json:"created_at"`
 	FileHistory   *FileHistoryObjRelInsertInput `json:"file_history"`
 	FileHistoryID *int                          `json:"file_history_id"`
+	Meta          *bool                         `json:"meta"`
 	Rule          *RulesObjRelInsertInput       `json:"rule"`
 	RuleID        *int                          `json:"rule_id"`
 	RuleResultID  *int                          `json:"rule_result_id"`
@@ -1041,6 +1043,7 @@ type RuleResultsOrderBy struct {
 	CreatedAt     *OrderBy            `json:"created_at"`
 	FileHistory   *FileHistoryOrderBy `json:"file_history"`
 	FileHistoryID *OrderBy            `json:"file_history_id"`
+	Meta          *OrderBy            `json:"meta"`
 	Rule          *RulesOrderBy       `json:"rule"`
 	RuleID        *OrderBy            `json:"rule_id"`
 	RuleResultID  *OrderBy            `json:"rule_result_id"`
@@ -1052,6 +1055,7 @@ type RuleResultsOrderBy struct {
 type RuleResultsSetInput struct {
 	CreatedAt     *time.Time `json:"created_at"`
 	FileHistoryID *int       `json:"file_history_id"`
+	Meta          *bool      `json:"meta"`
 	RuleID        *int       `json:"rule_id"`
 	RuleResultID  *int       `json:"rule_result_id"`
 	Tag           *string    `json:"tag"`
@@ -2278,19 +2282,16 @@ type RuleResultsConstraint string
 
 const (
 	// unique or primary key constraint
-	RuleResultsConstraintRuleResultsFileHistoryIDTagKey RuleResultsConstraint = "rule_results_file_history_id_tag_key"
-	// unique or primary key constraint
 	RuleResultsConstraintRuleResultsPkey RuleResultsConstraint = "rule_results_pkey"
 )
 
 var AllRuleResultsConstraint = []RuleResultsConstraint{
-	RuleResultsConstraintRuleResultsFileHistoryIDTagKey,
 	RuleResultsConstraintRuleResultsPkey,
 }
 
 func (e RuleResultsConstraint) IsValid() bool {
 	switch e {
-	case RuleResultsConstraintRuleResultsFileHistoryIDTagKey, RuleResultsConstraintRuleResultsPkey:
+	case RuleResultsConstraintRuleResultsPkey:
 		return true
 	}
 	return false
@@ -2326,6 +2327,8 @@ const (
 	// column name
 	RuleResultsSelectColumnFileHistoryID RuleResultsSelectColumn = "file_history_id"
 	// column name
+	RuleResultsSelectColumnMeta RuleResultsSelectColumn = "meta"
+	// column name
 	RuleResultsSelectColumnRuleID RuleResultsSelectColumn = "rule_id"
 	// column name
 	RuleResultsSelectColumnRuleResultID RuleResultsSelectColumn = "rule_result_id"
@@ -2338,6 +2341,7 @@ const (
 var AllRuleResultsSelectColumn = []RuleResultsSelectColumn{
 	RuleResultsSelectColumnCreatedAt,
 	RuleResultsSelectColumnFileHistoryID,
+	RuleResultsSelectColumnMeta,
 	RuleResultsSelectColumnRuleID,
 	RuleResultsSelectColumnRuleResultID,
 	RuleResultsSelectColumnTag,
@@ -2346,7 +2350,7 @@ var AllRuleResultsSelectColumn = []RuleResultsSelectColumn{
 
 func (e RuleResultsSelectColumn) IsValid() bool {
 	switch e {
-	case RuleResultsSelectColumnCreatedAt, RuleResultsSelectColumnFileHistoryID, RuleResultsSelectColumnRuleID, RuleResultsSelectColumnRuleResultID, RuleResultsSelectColumnTag, RuleResultsSelectColumnValue:
+	case RuleResultsSelectColumnCreatedAt, RuleResultsSelectColumnFileHistoryID, RuleResultsSelectColumnMeta, RuleResultsSelectColumnRuleID, RuleResultsSelectColumnRuleResultID, RuleResultsSelectColumnTag, RuleResultsSelectColumnValue:
 		return true
 	}
 	return false
@@ -2382,6 +2386,8 @@ const (
 	// column name
 	RuleResultsUpdateColumnFileHistoryID RuleResultsUpdateColumn = "file_history_id"
 	// column name
+	RuleResultsUpdateColumnMeta RuleResultsUpdateColumn = "meta"
+	// column name
 	RuleResultsUpdateColumnRuleID RuleResultsUpdateColumn = "rule_id"
 	// column name
 	RuleResultsUpdateColumnRuleResultID RuleResultsUpdateColumn = "rule_result_id"
@@ -2394,6 +2400,7 @@ const (
 var AllRuleResultsUpdateColumn = []RuleResultsUpdateColumn{
 	RuleResultsUpdateColumnCreatedAt,
 	RuleResultsUpdateColumnFileHistoryID,
+	RuleResultsUpdateColumnMeta,
 	RuleResultsUpdateColumnRuleID,
 	RuleResultsUpdateColumnRuleResultID,
 	RuleResultsUpdateColumnTag,
@@ -2402,7 +2409,7 @@ var AllRuleResultsUpdateColumn = []RuleResultsUpdateColumn{
 
 func (e RuleResultsUpdateColumn) IsValid() bool {
 	switch e {
-	case RuleResultsUpdateColumnCreatedAt, RuleResultsUpdateColumnFileHistoryID, RuleResultsUpdateColumnRuleID, RuleResultsUpdateColumnRuleResultID, RuleResultsUpdateColumnTag, RuleResultsUpdateColumnValue:
+	case RuleResultsUpdateColumnCreatedAt, RuleResultsUpdateColumnFileHistoryID, RuleResultsUpdateColumnMeta, RuleResultsUpdateColumnRuleID, RuleResultsUpdateColumnRuleResultID, RuleResultsUpdateColumnTag, RuleResultsUpdateColumnValue:
 		return true
 	}
 	return false

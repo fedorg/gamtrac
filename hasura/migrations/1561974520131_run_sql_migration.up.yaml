@@ -1,0 +1,7 @@
+- args:
+    cascade: false
+    sql: "CREATE OR REPLACE VIEW \"public\".\"files\" AS \nSELECT recent.file_history_id
+      as file_history_id FROM (SELECT DISTINCT ON (filename) file_history_id, action\n
+      \  FROM file_history\n  ORDER BY filename, file_history_id DESC) as recent\n
+      \ WHERE ((recent.action <> 'D'::text) AND (recent.file_history_id <> 0));"
+  type: run_sql

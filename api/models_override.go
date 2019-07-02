@@ -16,6 +16,7 @@ type RuleResults struct {
 	RuleResultID *int    `json:"rule_result_id,omitempty"`
 	Tag          *string `json:"tag,omitempty"`
 	Value        *string `json:"value,omitempty"`
+	Meta         *bool   `json:"meta,omitempty"` // use this flag to disable diffing
 }
 
 
