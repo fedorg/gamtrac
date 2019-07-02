@@ -144,7 +144,8 @@ func MatchAllRules(filename string, rules []RuleMatcher) []RuleMatch {
 		return tokens[len(tokens)-1].matchPos[1]
 	}
 	matches := []RuleMatch{}
-	for _, matcher := range rules {
+	for i := range rules {
+		matcher := &rules[i]
 		tokens, err := matcher.Match(filename)
 		lastpos := getLastPos(tokens)
 		matchResult := RuleMatch{
@@ -152,7 +153,7 @@ func MatchAllRules(filename string, rules []RuleMatcher) []RuleMatch {
 			Err:     err,
 			LastPos: lastpos,
 			Matches: tokens,
-			Rule:    &matcher,
+			Rule:    matcher,
 		}
 		matches = append(matches, matchResult)
 	}
