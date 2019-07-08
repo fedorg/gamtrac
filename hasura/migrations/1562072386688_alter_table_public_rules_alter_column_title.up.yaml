@@ -1,0 +1,6 @@
+- args:
+    sql: ALTER TABLE "public"."rules" ALTER COLUMN "title" DROP DEFAULT;
+  type: run_sql
+- args:
+    sql: COMMENT ON COLUMN "public"."rules"."title" IS ''
+  type: run_sql

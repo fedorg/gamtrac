@@ -1,0 +1,6 @@
+- args:
+    sql: ALTER TABLE "public"."rules" ALTER COLUMN "title" SET DEFAULT ''''::text;
+  type: run_sql
+- args:
+    sql: COMMENT ON COLUMN "public"."rules"."title" IS 'null'
+  type: run_sql

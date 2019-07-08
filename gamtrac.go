@@ -44,8 +44,8 @@ func (p MountedPath) Unmount() error {
 type AnnotItem struct {
 	path     MountedPath
 	fileInfo os.FileInfo
-	rules    []rules.RuleMatcher
-	ruleIDs  []int
+	ruleDefs []api.Rules
+	handlers map[string]RuleResultGenerator
 	queuedAt time.Time
 }
 
@@ -72,69 +72,22 @@ func computeHash(path string) (*HashDigest, error) {
 	return digest, nil
 }
 
-func NewFileError(err error) FileError {
-	fmt.Fprintln(os.Stderr, err)
-	return FileError{
-		// Filename:  filename,
-		Error:     err,
-		CreatedAt: time.Now(),
-	}
-}
 
 func processFile(inputs <-chan AnnotItem, output chan<- api.AnnotResult, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for input := range inputs {
-		errors := []FileError{}
-
-		destination := input.path.Destination
-		mountedAt := input.path.MountedAt
-		info := input.fileInfo
-		// fmt.Println("Processing file: ", mountedAt)
-		ruleID := -1 // TODO: somehow get rid of this
-		matches := rules.MatchAllRules(destination, input.rules)
-		i := rules.FindBestRuleIndex(matches)
-		ruleResult := api.PathTagsResult{
-			Path:   destination,
-			RuleID: -1,
-			Values: map[string]string{},
-		}
-		if i != -1 {
-			m := matches[i]
-			ruleResult = api.PathTagsResult{
-				Path:   destination,
-				RuleID: input.ruleIDs[i],
-				Values: m.AsMap(),
+		// TODO: this interface is backwards
+		for _, rd := range input.ruleDefs {
+			handler, ok := input.handlers[rd.RuleType]
+			if !ok {
+				// TODO: return api.ErrorResult
+				fmt.Printf("Unknown rule type %v for ruleID %v", rd.RuleType, rd.RuleID)
+				continue
 			}
+			rslt := handler.Generate(rd, input) // TODO: dont pass the whole rule but a closure
+			// fmt.Println("Finished processing file: ", mountedAt)
+			output <- rslt
 		}
-		owner, err := scanner.GetFileOwnerUID(mountedAt)
-		if err != nil {
-			errors = append(errors, NewFileError(err))
-		}
-		var hash *HashDigest = nil
-		if !info.IsDir() {
-			hash, err = computeHash(mountedAt)
-			if err != nil {
-				errors = append(errors, NewFileError(err))
-			}
-		}
-		// TODO: this should be just a notification for other microservices to start parsing
-		ret := api.FilePropsResult{
-			Path:        destination,
-			RuleID:      ruleID,
-			MountDir:    mountedAt,
-			Size:        info.Size(),
-			Mode:        info.Mode(),
-			ModTime:     info.ModTime(),
-			QueuedAt:    input.queuedAt,
-			ProcessedAt: time.Now(),
-			IsDir:       info.IsDir(),
-			OwnerUID:    owner,
-			Hash:        hash,
-			Errors:      errors,
-		}
-		// fmt.Println("Finished processing file: ", mountedAt)
-		output <- &ret
-		output <- &ruleResult
 	}
 }
 
@@ -201,13 +154,13 @@ func CombineResultChangesets(results []api.AnnotResult) (map[string]string, erro
 }
 
 // TODO: ugghhhh
-func CombineResultsIsInChangeset(results []api.AnnotResult) (func([]string) bool) {
+func CombineResultsIsInChangeset(results []api.AnnotResult) func([]string) bool {
 	nonsign := mapset.NewSet()
 	for _, res := range results {
 		cfg := res.GetConfig()
 		nonsign = nonsign.Union(cfg.MetaProps.Union(cfg.IgnoredProps))
 	}
-	return func (props []string) bool {
+	return func(props []string) bool {
 		for _, prop := range props {
 			if nonsign.Contains(prop) {
 				return false
@@ -217,7 +170,6 @@ func CombineResultsIsInChangeset(results []api.AnnotResult) (func([]string) bool
 	}
 }
 
-
 func CombineResults(results []api.AnnotResult) []*api.RuleResults {
 	ret := []*api.RuleResults{}
 	for _, res := range results {
@@ -225,7 +177,6 @@ func CombineResults(results []api.AnnotResult) []*api.RuleResults {
 	}
 	return ret
 }
-
 
 func GenerateChangelist(scan int, oldFiles []api.FileHistory, curFiles map[string][]api.AnnotResult) ([]api.FileHistory, error) {
 	old := mapset.NewSet()
@@ -263,7 +214,7 @@ func GenerateChangelist(scan int, oldFiles []api.FileHistory, curFiles map[strin
 			print(to)
 			continue // don't mark errors as modified as that will flood the database with bogus modifications (TODO: allow for error type)
 		}
-		if len(changedProps) > 0 && isSignificant(changedProps){
+		if len(changedProps) > 0 && isSignificant(changedProps) {
 			modified.Add(fn)
 		} else {
 			// unchanged.Add(fn)
@@ -355,7 +306,33 @@ func mountPaths(paths []string, allowLocal bool, ac AppCredentials) (*map[string
 	return &mounts, unmountAll, nil
 }
 
-func rulesGetLocal() []rules.RuleMatcher {
+
+// returns rules and corresponding rule_id
+func rulesGetRemote(gg *api.GamtracGql) []api.Rules {
+	// fetch rules from the database
+	remoteRules, err := gg.RunFetchRules()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Cannot read remote rules: %e\n", err)
+		return []api.Rules{}
+	}
+	// place ignored rules first so that they take precedence
+	sort.Slice(remoteRules, func(i, j int) bool {
+		return (remoteRules[i].Ignore == true) && (remoteRules[j].Ignore == false)
+	})
+	rrs := []api.Rules{}
+	for _, rule := range remoteRules {
+		// rm, err := rules.NewMatcher(rule.Rule)
+		// if err != nil {
+		// 	fmt.Fprintf(os.Stderr, "Cannot parse remote rule %v: %e\n", rule.Rule, err)
+		// 	continue
+		// }
+		rrs = append(rrs, rule)
+	}
+
+	return rrs
+}
+
+func GetLocalPathTags() ([]api.Rules) {
 	ruleMatchers := []rules.RuleMatcher{}
 	csv, err := rules.ReadCSVTable("testdata.csv")
 	if err != nil {
@@ -367,38 +344,33 @@ func rulesGetLocal() []rules.RuleMatcher {
 			fmt.Fprintf(os.Stderr, "Cannot read from csv: %e\n", err)
 		}
 	}
-	return ruleMatchers
+	ptrules := []api.Rules{}
+	for _, rm := range ruleMatchers {
+		ptrules = append(ptrules, api.Rules{
+			RuleID:      -1,
+			Ignore:      false,
+			Principal:   nil,
+			Priority:    0,
+			Rule:        rm.Rule,
+			RuleResults: []*api.RuleResults{},
+			RuleType:    "pathtags",
+		})
+	}
+	for _, r := range ptrules {
+		if (r.RuleType != "pathtags") {panic(`Invalid rule type "`+r.RuleType+`" in PathTags handler`)}
+		// ph := PathTagsHandler{}
+		// ph.Init(r.Rule)
+	}
+	return ptrules
 }
 
-// returns rules and corresponding rule_id
-func rulesGetRemote(gg *api.GamtracGql) ([]rules.RuleMatcher, []int) {
-	// fetch rules from the database
-	remoteRules, err := gg.RunFetchRules()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Cannot read remote rules: %e\n", err)
-		return []rules.RuleMatcher{}, []int{}
-	}
-	// place ignored rules first so that they take precedence
-	sort.Slice(remoteRules, func(i, j int) bool {
-		return (remoteRules[i].Ignore == true) && (remoteRules[j].Ignore == false)
-	})
-	ret := []rules.RuleMatcher{}
-	idList := []int{}
-	for _, rule := range remoteRules {
-		rm, err := rules.NewMatcher(rule.Rule)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Cannot parse remote rule %v: %e\n", rule.Rule, err)
-			continue
-		}
-		ret = append(ret, *rm)
-		idList = append(idList, rule.RuleID)
-	}
-
-	return ret, idList
-}
 
 func triggerScan(remotePaths []string, ac AppCredentials) (int, error) {
-	gg := api.NewGamtracGql(ac.gqlEndpoint, 10000, os.Getenv("GAMTRAC_DEBUG_GQL") > "0")
+	timeout, err := strconv.ParseUint(os.Getenv("GAMTRAC_GQL_TIMEOUT"), 10, 32)
+	if err != nil || timeout < 0 {
+		timeout = 10000
+	}
+	gg := api.NewGamtracGql(ac.gqlEndpoint, uint32(timeout), os.Getenv("GAMTRAC_DEBUG_GQL") > "0")
 	// import (prisma "gamtrac/prisma/generated/prisma-client")
 	// import "context"
 	// ctx := context.Background()
@@ -421,19 +393,19 @@ func triggerScan(remotePaths []string, ac AppCredentials) (int, error) {
 	fmt.Printf("Scan %v\n\n", *rev)
 	oldFiles, err := gg.RunFetchFiles()
 
-	localRules := rulesGetLocal()
-	ruleIDList := []int{} // TODO: not the most elegant solution
-	for range localRules {
-		ruleIDList = append(ruleIDList, -1)
+	ruleHandlers := map[string]RuleResultGenerator{
+		"fileprops": &FilePropsHandler{},
+		"pathtags":  &PathTagsHandler{}, // TODO: this is broken and will fail
 	}
-	remoteRules, rrIds := rulesGetRemote(gg)
-	ruleMatchers := append(localRules, remoteRules...)
-	ruleIDList = append(ruleIDList, rrIds...)
 
-	if len(ruleMatchers) == 0 {
-		err = fmt.Errorf("failed to load at least one rule")
-		return *rev, (err)
-	}
+	localRules := GetLocalPathTags()
+	remoteRules := rulesGetRemote(gg)
+	ruleDefs := append(localRules, remoteRules...)
+	// TODO: initialize RuleResultGenerators
+	// if len(ruleMatchers) == 0 {
+	// 	err = fmt.Errorf("failed to load at least one rule")
+	// 	return *rev, (err)
+	// }
 
 	inputs := make(chan AnnotItem)
 	output := make(chan api.AnnotResult)
@@ -441,22 +413,25 @@ func triggerScan(remotePaths []string, ac AppCredentials) (int, error) {
 
 	wg := &sync.WaitGroup{}
 	numWorkers := runtime.NumCPU()
+	// launch data processor worker queue
 	wg.Add(numWorkers)
 	for w := 0; w < numWorkers; w++ {
 		go processFile(inputs, output, wg)
 	}
 
 	done := make(chan map[string][]api.AnnotResult)
+	// launch final map collector
 	go collectResults(output, done)
 
+	// feed the worker queue with files
 	for _, p := range *paths {
 		filepath.Walk(p.MountedAt, func(path string, f os.FileInfo, err error) error {
+			// path translation from destination to mounted dir
 			// TODO: propagate errors throught to the DB
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error: %e\n", err)
 				return err
 			}
-			// path translation from destination to mounted dir
 			relpath, err := filepath.Rel(p.MountedAt, path)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error: %e\n", err)
@@ -474,7 +449,7 @@ func triggerScan(remotePaths []string, ac AppCredentials) (int, error) {
 				MountedAt:   path,
 				Mounted:     false,
 			}
-			inputs <- AnnotItem{path: mp, fileInfo: f, queuedAt: time.Now(), rules: ruleMatchers, ruleIDs: ruleIDList}
+			inputs <- AnnotItem{path: mp, fileInfo: f, queuedAt: time.Now(), handlers: ruleHandlers, ruleDefs: ruleDefs}
 			return nil
 		})
 	}

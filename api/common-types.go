@@ -46,6 +46,15 @@ type FileError struct {
 	CreatedAt time.Time
 }
 
+func NewFileError(err error) FileError {
+	fmt.Fprintln(os.Stderr, err)
+	return FileError{
+		// Filename:  filename,
+		Error:     err,
+		CreatedAt: time.Now(),
+	}
+}
+
 // utility convert anything to api.RuleResult
 func ToJSONMap(r interface{}) (map[string]string, error) {
 	data := structs.Map(r)
@@ -72,6 +81,22 @@ type AnnotResult interface {
 	GetConfig() AnnotResultConfig
 }
 
+// type AnnotError struct {
+// 	err error
+// }
+
+// func (r *AnnotError) GetConfig() AnnotResultConfig {
+// 	return AnnotResultConfig{
+// 		IgnoredProps: mapset.NewSet("MountDir", "RuleID", "Path"),
+// 		MetaProps:    mapset.NewSet("Errors", "QueuedAt", "ProcessedAt"),
+// 		RuleID:       r.RuleID,
+// 		Path:         r.Path,
+// 	}
+// }
+// func (r *AnnotError) toPropsMap() (map[string]string, error) {
+// 	return ToJSONMap(r)
+// }
+
 // TODO: implement the binary file data agregator
 
 func ToChangeset(a AnnotResult) (map[string]string, error) {
@@ -91,7 +116,6 @@ func ToChangeset(a AnnotResult) (map[string]string, error) {
 	}
 	return changeset, nil
 }
-
 
 func ToRuleResult(a AnnotResult) []*RuleResults {
 	ret := []*RuleResults{}
