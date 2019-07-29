@@ -1,6 +1,1 @@
 dept,responsible,template_path,template_file,doc,comment
-DEPARTMENT,RESP,OBI/<template>,fid_<date>_user_<username>,this is a documeeeent,this is a comment
-otherdept,resp2,BAL/<dir2>/<dir2_x>/<filename>,,other document,other comment
-miniconda,resp3,<disk>:\<folder>\<дргуая папка>\,totally_not<what_is_it>>.<ext>:file,,-
-ino,arduino-team,<disk>/<username>/<product>/libraries/<libname>/examples/<example_name>/<example_path>.ino,,arduino lib examples,comment ardu
-ino,arduino-team,<disk>/<username>/<product>/libraries/<libname>/utility/<util_header>.h,,arduino util headers,
