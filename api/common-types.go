@@ -179,7 +179,7 @@ type PathTagsResult struct {
 func (r *PathTagsResult) GetConfig() AnnotResultConfig {
 	return AnnotResultConfig{
 		IgnoredProps: mapset.NewSet("RuleID", "Path", "Values"),
-		MetaProps:    mapset.NewSet("Errors"),
+		MetaProps:    mapset.NewSet("Errors", "QueuedAt", "ProcessedAt"),
 		RuleID:       r.RuleID,
 		Path:         r.Path,
 	}
@@ -187,3 +187,24 @@ func (r *PathTagsResult) GetConfig() AnnotResultConfig {
 func (r *PathTagsResult) toPropsMap() (map[string]string, error) {
 	return r.Values, nil
 }
+
+
+
+type MagellanWspResult struct {
+	Values map[string]string
+	RuleID int
+	Path   string
+}
+
+func (r *MagellanWspResult) GetConfig() AnnotResultConfig {
+	return AnnotResultConfig{
+		IgnoredProps: mapset.NewSet("RuleID", "Path", "Values"),
+		MetaProps:    mapset.NewSet("Errors", "QueuedAt", "ProcessedAt"),
+		RuleID:       r.RuleID,
+		Path:         r.Path,
+	}
+}
+func (r *MagellanWspResult) toPropsMap() (map[string]string, error) {
+	return r.Values, nil
+}
+

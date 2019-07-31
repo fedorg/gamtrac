@@ -13,6 +13,7 @@ require (
 	github.com/mitchellh/mapstructure v1.1.2 // indirect
 	github.com/prisma/prisma-client-lib-go v0.0.0-20181017161110-68a1f9908416
 	github.com/r3labs/diff v0.0.0-20190618142250-fbe9de54bde7
+	github.com/tealeg/xlsx v1.0.3
 	github.com/vektah/gqlparser v1.1.2
 	golang.org/x/sys v0.0.0-20190621203818-d432491b9138
 	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d // indirect

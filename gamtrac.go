@@ -155,20 +155,22 @@ func CombineResultChangesets(results []api.AnnotResult) (map[string]string, erro
 	return valmap, nil
 }
 
-// TODO: ugghhhh
-func CombineResultsIsInChangeset(results []api.AnnotResult) func([]string) bool {
+func FilterSignificantProps(results []api.AnnotResult) func([]string) []string {
 	nonsign := mapset.NewSet()
 	for _, res := range results {
 		cfg := res.GetConfig()
 		nonsign = nonsign.Union(cfg.MetaProps.Union(cfg.IgnoredProps))
 	}
-	return func(props []string) bool {
-		for _, prop := range props {
-			if nonsign.Contains(prop) {
-				return false
-			}
+	return func(props []string) []string {
+		propset := mapset.NewSet()
+		for _, p := range props {
+			propset.Add(p)
 		}
-		return true
+		signProps := []string{}
+		for isign := range propset.Difference(nonsign).Iter() {
+			signProps = append(signProps, isign.(string))
+		}
+		return signProps
 	}
 }
 
@@ -204,7 +206,7 @@ func GenerateChangelist(scan int, oldFiles []api.FileHistory, curFiles map[strin
 		if err != nil {
 			return nil, err
 		}
-		isSignificant := CombineResultsIsInChangeset(curFiles[fn])
+		leaveSignificant := FilterSignificantProps(curFiles[fn])
 		// TODO: respect RuleID and Priority when overwriting values
 		oldResults := map[string]string{}
 		for _, rr := range oldmap[fn].RuleResults {
@@ -216,12 +218,15 @@ func GenerateChangelist(scan int, oldFiles []api.FileHistory, curFiles map[strin
 			print(to)
 			continue // don't mark errors as modified as that will flood the database with bogus modifications (TODO: allow for error type)
 		}
-		if len(changedProps) > 0 && isSignificant(changedProps) {
+		signProps := leaveSignificant(changedProps)
+		if len(changedProps) > 0 && len(signProps) > 0 {
 			modified.Add(fn)
 		} else {
 			// unchanged.Add(fn)
 		}
 	}
+
+		// TODO: only write meta when file is modified
 
 	ret := []api.FileHistory{}
 	allI := append(append(modified.ToSlice(), created.ToSlice()...), deleted.ToSlice()...)
