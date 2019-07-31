@@ -145,7 +145,9 @@ func CombineResultChangesets(results []api.AnnotResult) (map[string]string, erro
 		for key, val := range cur {
 			_, exists := valmap[key]
 			if exists {
-				return nil, fmt.Errorf("cannot flatten duplicate property %v in result #%d: %#v", key, i, res)
+				fmt.Printf("Error: cannot flatten duplicate property %v in result #%d: %+v\n", key, i, cur)
+				// return nil, err
+				continue
 			}
 			valmap[key] = val
 		}
@@ -357,7 +359,9 @@ func GetLocalPathTags() ([]api.Rules) {
 		})
 	}
 	for _, r := range ptrules {
-		if (r.RuleType != "pathtags") {panic(`Invalid rule type "`+r.RuleType+`" in PathTags handler`)}
+		if r.RuleType != "pathtags" {
+			panic(`Invalid rule type "` + r.RuleType + `" in PathTags handler`)
+		}
 		// ph := PathTagsHandler{}
 		// ph.Init(r.Rule)
 	}
@@ -394,11 +398,21 @@ func triggerScan(remotePaths []string, ac AppCredentials) (int, error) {
 	oldFiles, err := gg.RunFetchFiles()
 
 	ruleHandlers := map[string]RuleResultGenerator{
+		"wsp":       &MagellanWspHandler{},
 		"fileprops": &FilePropsHandler{},
 		"pathtags":  &PathTagsHandler{}, // TODO: this is broken and will fail
 	}
 
 	localRules := GetLocalPathTags()
+	localRules = append(localRules, api.Rules{
+		RuleID:      -1,
+		Ignore:      false,
+		RuleType:    "fileprops",
+	}, api.Rules{
+		RuleID:      -1,
+		Ignore:      false,
+		RuleType:    "wsp",
+	})
 	remoteRules := rulesGetRemote(gg)
 	ruleDefs := append(localRules, remoteRules...)
 	// TODO: initialize RuleResultGenerators

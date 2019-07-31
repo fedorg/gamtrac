@@ -14,7 +14,7 @@
             "env": {
                 "GAMTRAC_ALLOW_LOCAL": "1",
                 "GAMTRAC_DEBUG_GQL": "0",
-                "GAMTRAC_HASH_FILE_CONTENTS": "0"
+                "GAMTRAC_HASH_FILE_CONTENTS": "1"
             },
             "args": ["H:/user/Arduino/libraries"]
             // "args": ["\\\\srv-rnd-spb\\rnddata\\ДАР\\ЛАМ\\Test\\New folder"]
