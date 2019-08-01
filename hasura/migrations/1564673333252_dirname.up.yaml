@@ -1,0 +1,14 @@
+- args:
+    cascade: true
+    sql: |
+      CREATE OR REPLACE FUNCTION dirname(text) RETURNS text
+      AS $dirname$
+      declare
+          FILE_PATH alias for $1;
+          ret         text;
+      begin
+          ret := regexp_replace(FILE_PATH,'[^/\\]+$', '');
+          return ret;
+      end;
+      $dirname$ LANGUAGE plpgsql;
+  type: run_sql
